@@ -16,21 +16,21 @@
 [submodule "modules/bump"]
 	path = modules/bump
 	url = https://github.com/kikito/bump.lua
-[submodule "hump"]
-	path = modules/hump
-	url = https://github.com/vrld/hump
-[submodule "push"]
-	path = modules/push
-	url = https://github.com/Ulydev/push
-[submodule "shack"]
-	path = modules/shack
-	url = https://github.com/Ulydev/shack
-[submodule "moonshine"]
-	path = modules/moonshine
-	url = https://github.com/vrld/moonshine
-[submodule "baton"]
-	path = modules/baton
-	url = https://github.com/tesselode/baton
 [submodule "modules/splashes"]
 	path = modules/splashes
 	url = https://github.com/love2d-community/splashes
+[submodule "modules/baton"]
+	path = modules/baton
+	url = https://github.com/tesselode/baton
+[submodule "modules/moonshine"]
+	path = modules/moonshine
+	url = https://github.com/vrld/moonshine
+[submodule "modules/hump"]
+	path = modules/hump
+	url = https://github.com/vrld/hump
+[submodule "modules/push"]
+	path = modules/push
+	url = https://github.com/Ulydev/push
+[submodule "modules/shack"]
+	path = modules/shack
+	url = https://github.com/Ulydev/shack
