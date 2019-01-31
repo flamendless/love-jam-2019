@@ -16,7 +16,7 @@ function GSM:init()
 		self.current_state:preload()
 		self.current_state:setPreload(true)
 	else
-		self.current_state:init()
+		self.current_state:onLoad()
 	end
 end
 
