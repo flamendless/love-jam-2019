@@ -6,21 +6,19 @@ local AssetsManager = {
 	fonts = {},
 	alpha = 1,
 	in_alpha = 1,
+	dur = 1.5,
+	delay = 0.9,
+	canvas,
 }
 
 local Loader = require("modules.love-loader.love-loader")
 local Flux = require("modules.flux.flux")
 local str
-local canvas
-local dur = 1.5
-local delay = 0.9
-if __DEBUG then
-	dur = 0.25
-	delay = 0.25
-end
 
-function AssetsManager:init()
-	canvas = love.graphics.newCanvas()
+function AssetsManager:init(dur, delay)
+	self.canvas = love.graphics.newCanvas()
+	self.dur = dur or self.dur
+	self.delay = delay or self.delay
 end
 
 function AssetsManager:addImage(container, images)
@@ -102,12 +100,12 @@ end
 
 function AssetsManager:draw()
 	if not self.isFinished then
-		love.graphics.setCanvas(canvas)
+		love.graphics.setCanvas(self.canvas)
 		--loading text
 		love.graphics.setCanvas()
 
 		love.graphics.setColor(1, 1, 1, self.alpha)
-		love.graphics.draw(canvas)
+		love.graphics.draw(self.canvas)
 	end
 end
 
@@ -145,5 +143,7 @@ function AssetsManager:getAllSources(container)
 	assert(self.sources[container], ("Container '%s' does not exist"):format(container))
 	return self.sources[container]
 end
+
+function AssetsManager:setFinished(bool) self.isFinished = bool end
 
 return AssetsManager

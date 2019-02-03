@@ -2,8 +2,10 @@ local BaseState = require("states.base_state")
 local Splash = BaseState:extend()
 
 local GSM = require("src.gamestate_manager")
+local AssetsManager = require("src.assets_manager")
 local Splashes = require("modules.splashes.o-ten-one")
 local splash
+local speed = 1
 
 function Splash:new()
 	Splash.super.new(self, "Splash")
@@ -11,30 +13,20 @@ end
 
 function Splash:onLoad(previous, ...)
 	splash = Splashes()
-	splash.onDone = function() print(1) end
+	splash.onDone = function() end
+	AssetsManager:setFinished(true)
+
+	if __DEBUG then
+		speed = 2
+	end
 end
 
 function Splash:update(dt)
-	splash:update(dt)
+	splash:update(dt * speed)
 end
 
 function Splash:draw()
 	splash:draw()
-end
-
-function Splash:keypressed(key)
-end
-
-function Splash:keyreleased(key)
-end
-
-function Splash:mousepressed(mx, my, mb)
-end
-
-function Splash:mousereleased(mx, my, mb)
-end
-
-function Splash:onExit()
 end
 
 return Splash
