@@ -101,7 +101,7 @@ end
 function AssetsManager:draw()
 	if not self.isFinished then
 		love.graphics.setCanvas(self.canvas)
-		--loading text
+		--DRAW LOADING SCREEN HERE
 		love.graphics.setCanvas()
 
 		love.graphics.setColor(1, 1, 1, self.alpha)
@@ -109,7 +109,7 @@ function AssetsManager:draw()
 	end
 end
 
-function AssetsManager:drawOverlay()
+function AssetsManager:drawTransition()
 	if self.isFadeIn then
 		love.graphics.setColor(0, 0, 0, self.in_alpha)
 		love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())

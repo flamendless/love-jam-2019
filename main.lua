@@ -34,7 +34,7 @@ function love.draw()
 		AssetsManager:draw()
 	else
 		GSM:draw()
-		AssetsManager:drawOverlay()
+		AssetsManager:drawTransition()
 	end
 end
 
