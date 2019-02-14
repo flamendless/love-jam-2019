@@ -13,7 +13,7 @@ end
 
 function Splash:onLoad(previous, ...)
 	splash = Splashes()
-	splash.onDone = function() GSM:switch( require("states").title ) end
+	splash.onDone = function() GSM:switch( require("states").title() ) end
 	AssetsManager:setFinished(true)
 
 	if __DEBUG then

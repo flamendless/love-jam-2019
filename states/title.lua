@@ -8,7 +8,7 @@ local GSM = require("src.gamestate_manager")
 local AssetsManager = require("src.assets_manager")
 
 local images = {}
-local font
+local font, font_small
 local obj_title, obj_text, obj_play, obj_quit, obj_info
 local image_fog, effect
 local time = 0
@@ -30,14 +30,16 @@ function Title:preload()
 			{ id = "bg_title", path = "assets/images/bg_title.png" },
 		})
 	AssetsManager:addFont({
-			{ id = "title_32", path = "assets/fonts/dimbo_regular.ttf", size = 32 },
+			{ id = "title_36", path = "assets/fonts/dimbo_regular.ttf", size = 36 },
+			{ id = "title_24", path = "assets/fonts/dimbo_regular.ttf", size = 24 },
 		})
 	AssetsManager:start( function() self:onLoad() end )
 end
 
 function Title:onLoad(previous, ...)
 	images = AssetsManager:getAllImages(self:getID())
-	font = AssetsManager:getFont("title_32")
+	font = AssetsManager:getFont("title_36")
+	font_small = AssetsManager:getFont("title_24")
 	for k, v in pairs(images) do v:setFilter("nearest", "nearest") end
 
 	local image_data = love.image.newImageData(love.graphics.getWidth()/2, love.graphics.getHeight()/2)
@@ -71,7 +73,7 @@ end
 
 function Title:draw()
 	love.graphics.setColor(1, 1, 1, 1)
-	love.graphics.draw(images.bg_title, 0, 0, 0, 4, 4)
+	love.graphics.draw(images.bg_title, 0, 0, 0, love.graphics.getWidth()/images.bg_title:getWidth(), love.graphics.getHeight()/images.bg_title:getHeight())
 	effect(function()
 		love.graphics.draw(image_fog)
 	end)
@@ -99,8 +101,9 @@ function Title:draw()
 		love.graphics.print(obj_quit.text, obj_quit.x - font:getWidth(obj_quit.text)/2, obj_quit.y)
 	end
 	if obj_info then
+		love.graphics.setFont(font_small)
 		love.graphics.setColor(1, 1, 1, 1)
-		love.graphics.print(obj_info.text, obj_info.x - font:getWidth(obj_info.text)/2, obj_info.y)
+		love.graphics.print(obj_info.text, obj_info.x - font_small:getWidth(obj_info.text)/2, obj_info.y)
 	end
 end
 
@@ -155,23 +158,23 @@ end
 
 function menuEnter()
 	obj_play = {
-		text = "Play",
+		text = "PLAY",
 		x = love.graphics.getWidth()/2,
 		y = love.graphics.getHeight() * 1.5,
 	}
 	obj_quit = {
-		text = "Quit",
+		text = "QUIT",
 		x = love.graphics.getWidth()/2,
 		y = love.graphics.getHeight() * 1.5,
 	}
 	obj_info = {
-		text = "Game Made For the LOVE Jam 2019",
+		text = "A Game Made For the LOVE Jam 2019\nBrandon Blanker Lim-it @flamendless",
 		x = love.graphics.getWidth()/2,
 		y = love.graphics.getHeight() * 1.5
 	}
 	Flux.to(obj_play, 1, { y = love.graphics.getHeight()/2 }):ease("backout")
 	Flux.to(obj_quit, 1, { y = love.graphics.getHeight()/2 + font:getHeight(obj_play.text) + 8 }):ease("backout")
-	Flux.to(obj_info, 1, { y = love.graphics.getHeight() * 0.95 }):ease("backout")
+	Flux.to(obj_info, 1, { y = love.graphics.getHeight() * 0.85 }):ease("backout")
 end
 
 return Title

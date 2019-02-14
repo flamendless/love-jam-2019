@@ -14,7 +14,7 @@ local AssetsManager = {
 local Loader = require("modules.love-loader.love-loader")
 local Flux = require("modules.flux.flux")
 local str
-local _pos, _scale, _ox, _oy
+local _pos, _scale, _ox, _oy, _color
 
 function AssetsManager:init(dur, delay)
 	self.canvas = love.graphics.newCanvas()
@@ -33,6 +33,10 @@ function AssetsManager:random()
 	_scale = math.random(1, 2)
 	_ox = self.image:getWidth()/2
 	_oy = self.image:getHeight()/2
+	local r = math.random(0, 255)/255 + 0.2
+	local g = math.random(0, 255)/255 + 0.2
+	local b = math.random(0, 255)/255 + 0.2
+	_color = { r, g, b }
 	Flux.to(_pos, 2, { y = love.graphics.getHeight() * 1.5 })
 end
 
@@ -118,6 +122,7 @@ function AssetsManager:draw()
 	if not self.isFinished then
 		love.graphics.setCanvas(self.canvas)
 		love.graphics.clear()
+		love.graphics.setColor(_color)
 		love.graphics.draw(self.image, _pos.x, _pos.y, 0, _scale, _scale, _ox, _oy)
 		love.graphics.setCanvas()
 

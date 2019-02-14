@@ -17,9 +17,12 @@ function love.load()
 	else
 		AssetsManager:init()
 	end
-	-- GSM:initState(States.splash)
-	-- GSM:initState(States.title())
-	GSM:initState(States.game())
+	if __DEBUG then
+		-- GSM:initState(States.title())
+		GSM:initState(States.game())
+	else
+		GSM:initState(States.splash())
+	end
 end
 
 function love.update(dt)

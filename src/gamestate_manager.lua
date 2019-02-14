@@ -22,6 +22,7 @@ end
 
 function GSM:switch(state)
 	assert(state:is(BaseState), "Passed state must extend from base state")
+	print("Switched to " .. state:getID())
 	self.current_state:onExit()
 	self.previous_state = self.current_state
 	self.current_state = state
