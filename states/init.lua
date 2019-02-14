@@ -3,7 +3,9 @@ local req = function(name)
 end
 
 local States = {
-	splash = req("splash")
+	splash = req("splash"),
+	title = req("title"),
+	game = req("game"),
 }
 
 return States

@@ -14,11 +14,26 @@ local AssetsManager = {
 local Loader = require("modules.love-loader.love-loader")
 local Flux = require("modules.flux.flux")
 local str
+local _pos, _scale, _ox, _oy
 
 function AssetsManager:init(dur, delay)
 	self.canvas = love.graphics.newCanvas()
 	self.dur = dur or self.dur
 	self.delay = delay or self.delay
+	self.image = love.graphics.newImage("assets/images/loading.png")
+	self.image:setFilter("nearest", "nearest")
+	self:random()
+end
+
+function AssetsManager:random()
+	_pos = {
+		x = love.graphics.getWidth()/2,
+		y = love.graphics.getHeight() * 0.25
+	}
+	_scale = math.random(1, 2)
+	_ox = self.image:getWidth()/2
+	_oy = self.image:getHeight()/2
+	Flux.to(_pos, 2, { y = love.graphics.getHeight() * 1.5 })
 end
 
 function AssetsManager:addImage(container, images)
@@ -54,11 +69,11 @@ function AssetsManager:addSource(container, sources)
 end
 
 function AssetsManager:onFinish(cb)
-	Flux.to(self, dur, { alpha = 0 })
+	Flux.to(self, self.dur, { alpha = 0 })
 		:oncomplete(function()
 			self.isFinished = true
 			self.isFadeIn = true
-			Flux.to(self, dur, { in_alpha = 0 })
+			Flux.to(self, self.dur, { in_alpha = 0 })
 				:oncomplete(function()
 					self.isFadeIn = false
 					--reset
@@ -66,7 +81,7 @@ function AssetsManager:onFinish(cb)
 					self.in_alpha = 1
 				end)
 		end)
-		:delay(delay)
+		:delay(self.delay)
 	if cb then cb() end
 end
 
@@ -80,6 +95,7 @@ function AssetsManager:onLoad(kind, holder, key)
 end
 
 function AssetsManager:start(cb)
+	self:random()
 	self.isFinished = false
 	Loader.start(function()
 		self:onFinish(cb)
@@ -101,7 +117,8 @@ end
 function AssetsManager:draw()
 	if not self.isFinished then
 		love.graphics.setCanvas(self.canvas)
-		--DRAW LOADING SCREEN HERE
+		love.graphics.clear()
+		love.graphics.draw(self.image, _pos.x, _pos.y, 0, _scale, _scale, _ox, _oy)
 		love.graphics.setCanvas()
 
 		love.graphics.setColor(1, 1, 1, self.alpha)

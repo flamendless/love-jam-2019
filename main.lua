@@ -11,12 +11,15 @@ local AssetsManager = require("src.assets_manager")
 local States = require("states")
 
 function love.load()
+	math.randomseed(os.time())
 	if __DEBUG then
 		AssetsManager:init(0.25, 0.25)
 	else
 		AssetsManager:init()
 	end
-	GSM:initState(States.splash)
+	-- GSM:initState(States.splash)
+	-- GSM:initState(States.title())
+	GSM:initState(States.game())
 end
 
 function love.update(dt)
