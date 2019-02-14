@@ -34,3 +34,6 @@
 [submodule "modules/shack"]
 	path = modules/shack
 	url = https://github.com/Ulydev/shack
+[submodule "modules/talkies"]
+	path = modules/talkies
+	url = https://github.com/tanema/talkies.git

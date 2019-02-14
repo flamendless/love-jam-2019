@@ -16,19 +16,45 @@ function Player:new(sprite, pos, rotation, sx, sy, ox, oy)
 	self.xspeed = self.min_speed
 	self.yspeed = self.min_speed
 	self.accel = 128
-	self.input = Baton.new({
-			controls = {
-				left = {"key:left", "key:a"},
-				right = {"key:right", "key:d"},
-				up = {"key:up", "key:w"},
-				down = {"key:down", "key:s"},
-			},
-		})
 end
 
-function Player:gotoIntroPosition(delay)
-	Flux.to(self.pos, 2, { y = love.graphics.getHeight() * 0.75 }):ease("backout"):delay(delay)
-		:oncomplete(function() self.can_move = true end)
+function Player:setControls(control)
+	if control == 1 then
+		self.input = Baton.new({
+				controls = {
+					left = {"key:a"},
+					right = {"key:d"},
+					up = {"key:w"},
+					down = {"key:s"},
+				},
+			})
+	elseif control == 2 then
+		self.input = Baton.new({
+				controls = {
+					left = {"key:left"},
+					right = {"key:right"},
+					up = {"key:up"},
+					down = {"key:down"},
+				},
+			})
+	elseif control == 3 then
+		self.input = Baton.new({
+				controls = {
+					left = {"key:h"},
+					right = {"key:l"},
+					up = {"key:k"},
+					down = {"key:j"},
+				},
+			})
+	end
+end
+
+function Player:gotoIntroPosition(delay, fn)
+	Flux.to(self.pos, 2, { y = love.graphics.getHeight() * 0.75 }):ease("backout"):delay(delay or 0)
+		:oncomplete(function()
+			self.can_move = true
+			if fn then fn() end
+		end)
 end
 
 function Player:update(dt)

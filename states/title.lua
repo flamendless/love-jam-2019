@@ -16,9 +16,16 @@ local out = 1
 local fade, menuEnter
 local doFade = true
 local dur = 0.5
-local max_selected = 2
+local max_selected = 3
 local selected = 1
 local stillTitle = true
+local controls = {
+	"Default (W,A,S,D)",
+	"Arrows Keys",
+	"Vim (H,J,K,L)",
+}
+local control_count = 1
+local control = controls[control_count]
 
 function Title:new()
 	Title.super.new(self, "Title")
@@ -69,6 +76,7 @@ end
 function Title:update(dt)
 	time = time + dt
 	effect.fog.time = time
+	if obj_controls then obj_controls.text = "CONTROL: " .. controls[control_count] end
 end
 
 function Title:draw()
@@ -92,8 +100,16 @@ function Title:draw()
 		end
 		love.graphics.print(obj_play.text, obj_play.x - font:getWidth(obj_play.text)/2, obj_play.y)
 	end
-	if obj_quit then
+	if obj_controls then
 		if selected == 2 then
+			love.graphics.setColor(1, 0, 0, 1)
+		else
+			love.graphics.setColor(1, 1, 1, 1)
+		end
+		love.graphics.print(obj_controls.text, obj_controls.x - font:getWidth(obj_controls.text)/2, obj_controls.y)
+	end
+	if obj_quit then
+		if selected == 3 then
 			love.graphics.setColor(1, 0, 0, 1)
 		else
 			love.graphics.setColor(1, 1, 1, 1)
@@ -124,6 +140,12 @@ function Title:keypressed(key)
 			if selected <= 0 then
 				selected = max_selected
 			end
+		elseif key == "left" or key == "a" then
+			control_count = control_count - 1
+			if control_count <= 0 then control_count = #controls end
+		elseif key == "right" or key == "d" then
+			control_count = control_count + 1
+			if control_count > #controls then control_count = 1 end
 		elseif key == "down" or key == "s" then
 			selected = selected + 1
 			if selected > max_selected then
@@ -131,7 +153,7 @@ function Title:keypressed(key)
 			end
 		elseif key == "return" or key == "space" then
 			if selected == 1 then
-				GSM:switch( require("states").game() )
+				GSM:switch( require("states").game(control_count) )
 			elseif selected == 2 then
 				love.event.quit()
 			end
@@ -162,6 +184,11 @@ function menuEnter()
 		x = love.graphics.getWidth()/2,
 		y = love.graphics.getHeight() * 1.5,
 	}
+	obj_controls = {
+		text = "CONTROLS: ",
+		x = love.graphics.getWidth()/2,
+		y = love.graphics.getHeight() * 1.5,
+	}
 	obj_quit = {
 		text = "QUIT",
 		x = love.graphics.getWidth()/2,
@@ -173,7 +200,8 @@ function menuEnter()
 		y = love.graphics.getHeight() * 1.5
 	}
 	Flux.to(obj_play, 1, { y = love.graphics.getHeight()/2 }):ease("backout")
-	Flux.to(obj_quit, 1, { y = love.graphics.getHeight()/2 + font:getHeight(obj_play.text) + 8 }):ease("backout")
+	Flux.to(obj_controls, 1, { y = love.graphics.getHeight()/2 + font:getHeight(obj_play.text) + 8 }):ease("backout")
+	Flux.to(obj_quit, 1, { y = love.graphics.getHeight()/2 + font:getHeight(obj_play.text) * 2 + 8 }):ease("backout")
 	Flux.to(obj_info, 1, { y = love.graphics.getHeight() * 0.85 }):ease("backout")
 end
 
