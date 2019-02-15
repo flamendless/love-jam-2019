@@ -9,11 +9,13 @@ local Timer = require("modules.hump.timer")
 local Vec2 = require("modules.hump.vector")
 local GSM = require("src.gamestate_manager")
 local AssetsManager = require("src.assets_manager")
+local Controls = require("src.controls")
 
 local Player = require("objects.player")
 local Slime = require("objects.slime")
 
 local images = {}
+local audio = {}
 local fonts = {}
 local bg_x = 0
 local bg_y = 0
@@ -26,35 +28,16 @@ local obj_player, obj_slime
 local count = 0
 local pressed_count = 0
 local text_control
-local left, right, up, down, shoot
 
-local showSlime, showScene, speakCortaxa
+local showSlime, showScene, speakCortaxa, getHurt
 local name_commander = "Commander Seven"
 local name_cortaxa = "..."
 
 function Game:new(control)
 	Game.super.new(self, "game")
-	self.control = control or 1
+	Controls:set(control)
 	local base = "Left : %s\nRight : %s\nUp : %s\nDown : %s"
-	if self.control == 1 then
-		left = "a"
-		right = "d"
-		up = "w"
-		down = "s"
-		shoot = "n"
-	elseif self.control == 2 then
-		left = "left"
-		right = "right"
-		up = "up"
-		down = "down"
-		shoot = "z"
-	elseif self.control == 3 then
-		left = "h"
-		right = "l"
-		up = "k"
-		down = "j"
-		shoot = "f"
-	end
+	local left, right, up, down = Controls:getMovement()
 	text_control = base:format(left, right, up, down)
 end
 
@@ -68,6 +51,15 @@ function Game:preload()
 			{ id = "avatar_commander_speak", path = "assets/images/avatar_commander_speak.png" },
 			{ id = "avatar_commander_shocked", path = "assets/images/avatar_commander_shocked.png" },
 		})
+	AssetsManager:addSource(self:getID(), {
+			{ id = "speak_commander", path = "assets/audio/speak_commander.ogg", kind = "static" },
+			{ id = "speak_cortaxa", path = "assets/audio/speak_cortaxa.ogg", kind = "static" },
+			{ id = "speak_slime", path = "assets/audio/speak_slime.ogg", kind = "static" },
+			{ id = "jet_intro", path = "assets/audio/jet_intro.ogg", kind = "stream" },
+			{ id = "jet_move", path = "assets/audio/jet_move.ogg", kind = "stream" },
+			{ id = "slime", path = "assets/audio/slime.ogg", kind = "stream" },
+			{ id = "explosion", path = "assets/audio/explosion.ogg", kind = "stream" },
+		})
 	AssetsManager:addFont({
 			{ id = "dialogue", path = "assets/fonts/dimbo_italic.ttf", size = 24 }
 		})
@@ -77,6 +69,7 @@ end
 function Game:onLoad(previous, ...)
 	Shack:setDimensions(love.graphics.getDimensions())
 	images = AssetsManager:getAllImages(self:getID())
+	audio = AssetsManager:getAllSources(self:getID())
 	fonts.dialogue = AssetsManager:getFont("dialogue")
 	for k, v in pairs(images) do v:setFilter("nearest", "nearest") end
 	for k, v in pairs(fonts) do v:setFilter("nearest", "nearest") end
@@ -86,10 +79,12 @@ function Game:onLoad(previous, ...)
 	obj_player = Player(images.player,
 		Vec2(love.graphics.getWidth()/2, love.graphics.getHeight() * 1.5),
 		0, 1, 1, images.player:getWidth()/2, images.player:getHeight()/2)
-	obj_player:setControls(self.control)
+	obj_player:setMoveSound(audio.jet_move)
 	Flux.to(overlay_color, 3, { [4] = 0 }):delay(2)
+		:onstart(function()
+			audio.jet_intro:play()
+		end)
 	obj_player:gotoIntroPosition(3, function()
-		-- showSlime()
 		showScene()
 	end)
 end
@@ -129,6 +124,8 @@ function Game:draw()
 end
 
 function Game:keypressed(key)
+	local left, right, up, down = Controls:getMovement()
+	local shoot = Controls:getShoot()
 	if key == "space" then Talkies.onAction()
 	elseif key == up then Talkies.prevOption()
 	elseif key == down then Talkies.nextOption()
@@ -141,7 +138,8 @@ function Game:keypressed(key)
 	end
 	if key == shoot and count == 2 then
 		Shack:setShake(100)
-		--explosion
+		audio.explosion:play()
+		getHurt()
 		showScene()
 	end
 end
@@ -154,6 +152,7 @@ function showScene()
 				"Are you okay?",
 				"Try moving your fighter",
 			}, {
+				talkSound = audio.speak_commander,
 				image = images.avatar_commander_speak,
 			})
 		Talkies.say(name_cortaxa, {
@@ -161,6 +160,7 @@ function showScene()
 				text_control,
 			}, {
 				image = images.avatar_cortaxa,
+				talkSound = audio.speak_commander,
 				oncomplete = function() count = count + 1 end
 			})
 
@@ -168,15 +168,18 @@ function showScene()
 		Talkies.say(name_commander, {
 				"Are you feeling okay now?",
 				"Our ship barely survived the attack",
-				"You must find intel about the attack"
+				"You must find intel about the attack",
+				"Try shooting."
 			}, {
 				image = images.avatar_commander_speak,
+				talkSound = audio.speak_commander,
 			})
 		Talkies.say(name_cortaxa, {
 				"Beep! Beep! Beep!",
-				("Press %s to shoot"):format(shoot),
+				("Press %s to shoot"):format(Controls:getShoot()),
 			}, {
 				image = images.avatar_cortaxa,
+				talkSound = audio.speak_cortaxa,
 				oncomplete = function() count = count + 1 end
 			})
 
@@ -188,6 +191,7 @@ function showScene()
 				"They can fix the fighter."
 			}, {
 				image = images.avatar_commander_speak,
+				talkSound = audio.speak_commander,
 				oncomplete = function() count = count + 1 end
 			})
 		speakCortaxa()
@@ -198,7 +202,8 @@ function showScene()
 				".", "..", "...",
 				"Is that the thing that attacked us?!"
 			}, {
-				image = images.avatar_commander_shocked
+				image = images.avatar_commander_shocked,
+				talkSound = audio.speak_commander,
 			})
 	end
 end
@@ -215,6 +220,7 @@ function speakCortaxa()
 								"To rescue a survivor, you must stay within\ntheir proximity for a period of time"
 							}, {
 								image = images.avatar_cortaxa,
+								talkSound = audio.speak_cortaxa,
 								oncomplete = function()
 									speakCortaxa()
 								end
@@ -227,6 +233,7 @@ function speakCortaxa()
 								"No result found!"
 							}, {
 								image = images.avatar_cortaxa,
+								talkSound = audio.speak_cortaxa,
 								oncomplete = function()
 									speakCortaxa()
 								end
@@ -237,6 +244,7 @@ function speakCortaxa()
 								"Bye!"
 							}, {
 								image = images.avatar_cortaxa,
+								talkSound = audio.speak_cortaxa,
 								oncomplete = function()
 									--show slime
 									showSlime()
@@ -245,6 +253,7 @@ function speakCortaxa()
 					end},
 			},
 			image = images.avatar_cortaxa,
+			talkSound = audio.speak_cortaxa,
 			oncomplete = function()
 				name_cortaxa = "Hello Cortaxa"
 			end
@@ -257,8 +266,14 @@ function showSlime()
 	obj_slime = Slime(obj_anim, images.sheet_slime,
 		Vec2(love.graphics.getWidth()/2, -love.graphics.getHeight()/2),
 		0, 2, 2, 150/2, 0)
+	audio.slime:play()
 
-	obj_slime:gotoIntroPosition(1, function() showScene() end)
+	obj_slime:gotoIntroPosition(0, function() showScene() end)
+end
+
+function getHurt()
+	overlay_color = {1, 0, 0, 1}
+	Flux.to(overlay_color, 2, { [4] = 0 })
 end
 
 return Game

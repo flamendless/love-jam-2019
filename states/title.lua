@@ -8,12 +8,13 @@ local GSM = require("src.gamestate_manager")
 local AssetsManager = require("src.assets_manager")
 
 local images = {}
+local audio = {}
 local font, font_small
 local obj_title, obj_text, obj_play, obj_quit, obj_info
 local image_fog, effect
 local time = 0
 local out = 1
-local fade, menuEnter
+local fade, menuEnter, playMove, playEnter
 local doFade = true
 local dur = 0.5
 local max_selected = 3
@@ -36,6 +37,10 @@ function Title:preload()
 			{ id = "title", path = "assets/images/title.png" },
 			{ id = "bg_title", path = "assets/images/bg_title.png" },
 		})
+	AssetsManager:addSource(self:getID(), {
+			{ id = "option_move", path = "assets/audio/option_move.ogg", kind = "static" },
+			{ id = "option_select", path = "assets/audio/option_select.ogg", kind = "static" },
+		})
 	AssetsManager:addFont({
 			{ id = "title_36", path = "assets/fonts/dimbo_regular.ttf", size = 36 },
 			{ id = "title_24", path = "assets/fonts/dimbo_regular.ttf", size = 24 },
@@ -46,6 +51,7 @@ end
 function Title:onLoad(previous, ...)
 	images = AssetsManager:getAllImages(self:getID())
 	font = AssetsManager:getFont("title_36")
+	audio = AssetsManager:getAllSources(self:getID())
 	font_small = AssetsManager:getFont("title_24")
 	for k, v in pairs(images) do v:setFilter("nearest", "nearest") end
 
@@ -125,6 +131,7 @@ end
 
 function Title:keypressed(key)
 	if stillTitle then
+		playEnter()
 		stillTitle = false
 		dur = 0.1
 		Flux.to(obj_title, 1, { y = love.graphics.getHeight() * 0.25 }):ease("backin")
@@ -140,21 +147,26 @@ function Title:keypressed(key)
 			if selected <= 0 then
 				selected = max_selected
 			end
+			playMove()
 		elseif key == "left" or key == "a" then
 			control_count = control_count - 1
 			if control_count <= 0 then control_count = #controls end
+			playMove()
 		elseif key == "right" or key == "d" then
 			control_count = control_count + 1
 			if control_count > #controls then control_count = 1 end
+			playMove()
 		elseif key == "down" or key == "s" then
 			selected = selected + 1
 			if selected > max_selected then
 				selected = 1
 			end
+			playMove()
 		elseif key == "return" or key == "space" then
 			if selected == 1 then
 				GSM:switch( require("states").game(control_count) )
-			elseif selected == 2 then
+				playEnter()
+			elseif selected == 3 then
 				love.event.quit()
 			end
 		end
@@ -203,6 +215,20 @@ function menuEnter()
 	Flux.to(obj_controls, 1, { y = love.graphics.getHeight()/2 + font:getHeight(obj_play.text) + 8 }):ease("backout")
 	Flux.to(obj_quit, 1, { y = love.graphics.getHeight()/2 + font:getHeight(obj_play.text) * 2 + 8 }):ease("backout")
 	Flux.to(obj_info, 1, { y = love.graphics.getHeight() * 0.85 }):ease("backout")
+end
+
+function playMove()
+	if audio.option_move:isPlaying() then
+		audio.option_move:stop()
+	end
+	audio.option_move:play()
+end
+
+function playEnter()
+	if audio.option_select:isPlaying() then
+		audio.option_select:stop()
+	end
+	audio.option_select:play()
 end
 
 return Title
