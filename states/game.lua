@@ -59,6 +59,8 @@ function Game:preload()
 			{ id = "jet_move", path = "assets/audio/jet_move.ogg", kind = "stream" },
 			{ id = "slime", path = "assets/audio/slime.ogg", kind = "stream" },
 			{ id = "explosion", path = "assets/audio/explosion.ogg", kind = "stream" },
+			{ id = "bgm_light", path = "assets/audio/bgm_light.ogg", kind = "stream" },
+			{ id = "bgm_dark", path = "assets/audio/bgm_dark.ogg", kind = "stream" },
 		})
 	AssetsManager:addFont({
 			{ id = "dialogue", path = "assets/fonts/dimbo_italic.ttf", size = 24 }
@@ -154,6 +156,10 @@ function showScene()
 			}, {
 				talkSound = audio.speak_commander,
 				image = images.avatar_commander_speak,
+				onstart = function()
+					audio.bgm_light:setLooping(true)
+					audio.bgm_light:play()
+				end
 			})
 		Talkies.say(name_cortaxa, {
 				"Beep! Beep! Beep!",
@@ -204,6 +210,11 @@ function showScene()
 			}, {
 				image = images.avatar_commander_shocked,
 				talkSound = audio.speak_commander,
+				onstart = function()
+					audio.bgm_light:stop()
+					audio.bgm_dark:setLooping(true)
+					audio.bgm_dark:play()
+				end
 			})
 	end
 end

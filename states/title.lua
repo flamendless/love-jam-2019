@@ -38,6 +38,7 @@ function Title:preload()
 			{ id = "bg_title", path = "assets/images/bg_title.png" },
 		})
 	AssetsManager:addSource(self:getID(), {
+			{ id = "bgm_title", path = "assets/audio/bgm_title.ogg", kind = "stream" },
 			{ id = "option_move", path = "assets/audio/option_move.ogg", kind = "static" },
 			{ id = "option_select", path = "assets/audio/option_select.ogg", kind = "static" },
 		})
@@ -76,6 +77,10 @@ function Title:onLoad(previous, ...)
 		y = love.graphics.getHeight() * 1.5
 	}
 	Flux.to(obj_text, 2, { y = love.graphics.getHeight() * 0.75 }):ease("backout"):delay(1)
+		:onstart(function()
+			audio.bgm_title:setLooping(true)
+			audio.bgm_title:play()
+		end)
 	fade()
 end
 
@@ -229,6 +234,10 @@ function playEnter()
 		audio.option_select:stop()
 	end
 	audio.option_select:play()
+end
+
+function Title:onExit()
+	audio.bgm_title:stop()
 end
 
 return Title
