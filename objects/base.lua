@@ -15,10 +15,21 @@ end
 function Base:update(dt) end
 
 function Base:draw()
+	if self.color then love.graphics.setColor(self.color) end
 	love.graphics.draw(self.sprite,
 		self.pos.x, self.pos.y,
 		self.rotation, self.sx, self.sy,
 		self.ox, self.oy)
+
+	if __DEBUG then
+		love.graphics.setColor(1, 0, 0, 1)
+		love.graphics.rectangle("line",
+			self.pos.x - self.ox * self.sx,
+			self.pos.y - self.oy * self.sy,
+			self.width * self.sx,
+			self.height * self.sy)
+		love.graphics.setColor(1, 1, 1, 1)
+	end
 end
 
 function Base:setDimensions(w, h)

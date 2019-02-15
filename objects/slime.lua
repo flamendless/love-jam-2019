@@ -20,6 +20,7 @@ function Slime:new(obj_anim, sheet, pos, rotation, sx, sy, ox, oy)
 end
 
 function Slime:setPlayer(player) self.player = player end
+function Slime:setDimensions(w, h) self.width = w; self.height = h end
 
 function Slime:gotoIntroPosition(delay, fn)
 	Flux.to(self.pos, 2, { y = 0 }):ease("backout"):delay(delay or 0)
@@ -37,14 +38,11 @@ end
 function Slime:update(dt)
 	self.obj_anim:update(dt)
 	for i, v in ipairs(self.projectiles) do
-		if not v.finished then
-			v:update(dt)
-			if v:checkHit(self.player) then
-				print("HIT")
-			end
+		v:update(dt)
+		if v:checkHit(self.player) and self.player.vulnerable then
+			self.player:damage(v.damage)
 		end
 	end
-
 
 	--safely remove
 	for i = #self.projectiles, 1, -1 do
@@ -58,6 +56,15 @@ function Slime:draw()
 		v:draw()
 	end
 	self.obj_anim:draw(self.sheet, self.pos.x, self.pos.y, self.rotation, self.sx, self.sy, self.ox, self.oy)
+	if __DEBUG then
+		love.graphics.setColor(1, 0, 0, 1)
+		love.graphics.rectangle("line",
+			self.pos.x - self.ox * self.sx,
+			self.pos.y - self.oy * self.sy,
+			self.width * self.sx,
+			self.height * self.sy)
+		love.graphics.setColor(1, 1, 1, 1)
+	end
 end
 
 return Slime

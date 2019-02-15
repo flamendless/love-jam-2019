@@ -29,7 +29,7 @@ local count = 0
 local pressed_count = 0
 local text_control
 
-local showSlime, showScene, speakCortaxa, getHurt
+local showSlime, showScene, speakCortaxa, getHurt, mainGame
 local name_commander = "Commander Seven"
 local name_cortaxa = "..."
 local name_slime = "Slime"
@@ -156,7 +156,6 @@ function Game:keypressed(key)
 	elseif key == "l" then
 		if obj_slime then
 			obj_slime:attack("laser")
-			obj_player:dodgeToLeft()
 		end
 	end
 end
@@ -257,6 +256,7 @@ function showScene()
 				talkSound = audio.speak_commander,
 				oncomplete = function()
 					main_game = true
+					mainGame()
 				end
 			})
 	end
@@ -330,6 +330,10 @@ end
 function getHurt()
 	overlay_color = {1, 0, 0, 1}
 	Flux.to(overlay_color, 2, { [4] = 0 })
+end
+
+function mainGame()
+
 end
 
 return Game
