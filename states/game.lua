@@ -12,6 +12,7 @@ local Vec2 = require("modules.hump.vector")
 local GSM = require("src.gamestate_manager")
 local AssetsManager = require("src.assets_manager")
 local Controls = require("src.controls")
+local GUI = require("src.gui")
 
 local Player = require("objects.player")
 local Slime = require("objects.slime")
@@ -32,17 +33,22 @@ local count = 0
 local pressed_count = 0
 local text_control
 
-local showSlime, showScene, speakCortaxa, getHurt, mainGame
+local showSlime, showScene, speakCortaxa, getHurt, mainGame, showFirstRescue
 local name_commander = "Commander Seven"
 local name_cortaxa = "..."
 local name_slime = "Slime"
+local names = {"Billy", "Steve", "John", "sam", "Eliot", "Tyrell"}
+local name_rescued = names[math.random(1, #names)]
+
 local main_game = false
+local paused = false
 
 local effect_fog
 local image_fog
 local time = 0
 
 local objects = {}
+local first_rescue = true
 
 function Game:new(control)
 	Game.super.new(self, "game")
@@ -97,6 +103,9 @@ function Game:preload()
 			{ id = "help1", path = "assets/audio/help1.ogg", kind = "stream" },
 			{ id = "help2", path = "assets/audio/help2.ogg", kind = "stream" },
 			{ id = "help3", path = "assets/audio/help3.ogg", kind = "stream" },
+			{ id = "hit1", path = "assets/audio/hit1.ogg", kind = "stream" },
+			{ id = "hit2", path = "assets/audio/hit2.ogg", kind = "stream" },
+			{ id = "hit3", path = "assets/audio/hit3.ogg", kind = "stream" },
 		})
 
 	AssetsManager:addFont({
@@ -119,6 +128,7 @@ function Game:onLoad(previous, ...)
 		Vec2(love.graphics.getWidth()/2, love.graphics.getHeight() * 1.5),
 		0, 1, 1, images.player:getWidth()/2, images.player:getHeight()/2)
 	obj_player:setMoveSound(audio.jet_move)
+	obj_player:setDamageSound({audio.hit1, audio.hit2, audio.hit3})
 	obj_player:setDimensions(images.player:getWidth(), images.player:getHeight())
 	Flux.to(overlay_color, 3, { [4] = 0 }):delay(2)
 		:onstart(function()
@@ -127,6 +137,9 @@ function Game:onLoad(previous, ...)
 	obj_player:gotoIntroPosition(3, function()
 		showScene()
 	end)
+
+	GUI:new(fonts.dialogue)
+	GUI:setObjects(obj_player)
 end
 
 function Game:update(dt)
@@ -156,8 +169,14 @@ function Game:update(dt)
 
 	quad:setViewport(bg_x, bg_y, images.bg_game:getWidth() * 2, images.bg_game:getHeight() * 2)
 
-	if obj_slime then obj_slime:update(dt) end
-	obj_player:update(dt)
+	if obj_slime then
+		if not paused then
+			obj_slime:update(dt)
+		end
+	end
+	if not paused then
+		obj_player:update(dt)
+	end
 
 	for i, v in ipairs(objects) do
 		v:update(dt)
@@ -165,15 +184,28 @@ function Game:update(dt)
 			v.timer = v.timer - dt
 			v.being_rescued = true
 		else
+			v.timer = v.timer - 1
+			if v.timer > v.orig_timer then v.timer = v.orig_timer end
 			v.being_rescued = false
 		end
 	end
 
 	for i = #objects, 1, -1 do
 		local obj = objects[i]
-		if obj.rescued or obj.gone then table.remove(objects, i) end
+		if obj.rescued then
+			obj_player:giveRescued(obj)
+			table.remove(objects, i)
+			if first_rescue then
+				first_rescue = false
+				showFirstRescue()
+			end
+		end
+		if obj.gone then table.remove(objects, i) end
 	end
 
+	if	not paused then
+		GUI:update(dt)
+	end
 	Shack:update(dt)
 	Talkies.update(dt)
 end
@@ -190,6 +222,7 @@ function Game:draw()
 	obj_player:draw()
 	if obj_slime then obj_slime:draw() end
 
+	GUI:draw()
 	Talkies.draw()
 
 	--overlay
@@ -213,6 +246,7 @@ function Game:keypressed(key)
 	if key == shoot and count == 2 then
 		Shack:setShake(200)
 		audio.explosion:play()
+		obj_player.life = obj_player.life - 25
 		getHurt()
 		showScene()
 	end
@@ -221,6 +255,7 @@ function Game:keypressed(key)
 			showSlime()
 		elseif key == "l" then
 			if obj_slime then
+				obj_player:dodgeToLeft()
 				obj_slime:attack("laser")
 			end
 		elseif key == "p" then
@@ -313,8 +348,8 @@ function showScene()
 				image = images.avatar_commander_silly,
 				talkSound = audio.speak_commander,
 				oncomplete = function()
-					obj_slime:attack("laser")
 					obj_player:dodgeToLeft()
+					obj_slime:attack("laser")
 				end
 			})
 		Talkies.say(name_commander, {
@@ -324,6 +359,7 @@ function showScene()
 				image = images.avatar_commander_shocked,
 				talkSound = audio.speak_commander,
 				oncomplete = function()
+					obj_player.can_move = true
 					main_game = true
 					mainGame()
 				end
@@ -402,22 +438,24 @@ function getHurt()
 end
 
 function mainGame()
+	GUI.timer_start = true
 	spawn()
 end
 
 function spawn()
-	-- local random = math.random(3, 7)
-	local random = math.random(0, 1)
-	print(random)
+	local random = math.random(3, 7)
+	-- local random = math.random(0, 1)
+	print("spawn: " .. random)
 	Timer.after(random, function()
 		local chance = Lume.randomchoice({"island", "wreck", "drown"})
 		local sprite = images[chance]
 		local pos = Vec2(
 			math.random(0, love.graphics.getWidth() - sprite:getWidth()),
 			-- math.random(-love.graphics.getHeight() * 1.5, 0))
-			math.random(0, love.graphics.getHeight()))
-		local rotation = math.rad(math.random(0, 360))
-		local obj = Survivor(sprite, pos, rotation, 1, 1, sprite:getWidth()/2, sprite:getHeight()/2)
+			64)
+		-- local rotation = math.rad(math.random(0, 360))
+		local scale = math.random(1, 2)
+		local obj = Survivor(sprite, pos, 0, scale, scale, sprite:getWidth()/2, sprite:getHeight()/2)
 		local n = math.random(1, 4)
 		local image_survivor = images["survivor" .. n]
 		local grid = Anim8.newGrid(32, 32, image_survivor:getWidth(), image_survivor:getHeight())
@@ -428,8 +466,35 @@ function spawn()
 		obj:setSoundOnRescue(snd_rescued)
 		obj:setSoundHelp(snd_help)
 		table.insert(objects, obj)
-		-- spawn()
+		spawn()
 	end)
+end
+
+function showFirstRescue()
+	paused = true
+	Talkies.say(name_rescued, {
+			"Thanks for helping me!",
+			".", "..", "...",
+			"Just curious, why are you not shooting that thing?",
+			"W-", "What!?", "The engine is damaged?!",
+			".", "..", "...",
+			"Good thing I am here!",
+			"I can help you...",
+			"You can task me to help repair the jet if it's damaged",
+			"Or you can send me to that enemy and attack it from the inside!",
+			"Pretty exciting huh?",
+		})
+	Talkies.say(name_cortaxa, {
+			"Beep! Beep! Beep!",
+			("New information!\n%s : shoot\n%s : repair"):format(Controls:getShoot(), Controls:getRepair()),
+			"You can see the rescued count on the bottom left part of the screen",
+		}, {
+			image = images.avatar_cortaxa,
+			talkSound = audio.speak_cortaxa,
+			oncomplete = function()
+				paused = false
+			end
+		})
 end
 
 return Game

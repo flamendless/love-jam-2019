@@ -7,6 +7,7 @@ function BaseAttack:new(id, obj_anim, sheet)
 	self.sheet = sheet
 	self.sheet:setFilter("nearest", "nearest")
 	self.current_frame = 0
+	self.can_hit = false
 end
 
 function BaseAttack:setDamage(damage) self.damage = damage end
@@ -22,8 +23,10 @@ function BaseAttack:draw()
 	if __DEBUG then
 		if self.current_frame >= self.hit_frame then
 			love.graphics.setColor(1, 0, 0, 1)
+			self.can_hit = true
 		else
 			love.graphics.setColor(0, 0, 1, 1)
+			self.can_hit = false
 		end
 		love.graphics.rectangle("line",
 			self.pos.x - self.ox * self.sx,

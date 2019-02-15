@@ -39,7 +39,7 @@ function Slime:update(dt)
 	self.obj_anim:update(dt)
 	for i, v in ipairs(self.projectiles) do
 		v:update(dt)
-		if v:checkHit(self.player) and self.player.vulnerable then
+		if v:checkHit(self.player) and self.player.vulnerable and v.can_hit then
 			self.player:damage(v.damage)
 		end
 	end
@@ -55,6 +55,7 @@ function Slime:draw()
 	for i, v in ipairs(self.projectiles) do
 		v:draw()
 	end
+	love.graphics.setColor(1, 1, 1, 1)
 	self.obj_anim:draw(self.sheet, self.pos.x, self.pos.y, self.rotation, self.sx, self.sy, self.ox, self.oy)
 	if __DEBUG then
 		love.graphics.setColor(1, 0, 0, 1)

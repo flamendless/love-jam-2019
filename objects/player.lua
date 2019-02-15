@@ -22,12 +22,16 @@ function Player:new(sprite, pos, rotation, sx, sy, ox, oy)
 	self.life = 100
 	self.input = Controls:setControls()
 	self.color = {1, 1, 1, 1}
+	self.rescued = {}
+	self.score = 0
 end
 
 function Player:gotoIntroPosition(delay, fn)
 	Flux.to(self.pos, 2, { y = love.graphics.getHeight() * 0.75 }):ease("backout"):delay(delay or 0)
 		:oncomplete(function()
-			self.can_move = true
+			if __DEBUG then
+				self.can_move = true
+			end
 			self.vulnerable = true
 			if fn then fn() end
 		end)
@@ -55,6 +59,11 @@ function Player:update(dt)
 		self.ydir = -1
 	elseif self.input:down("down") then
 		self.ydir = 1
+	end
+	if self.input:pressed("shoot") then
+		if #self.rescued == 0 then
+			self:damage(25)
+		end
 	end
 
 	if self.xdir == 0 then
@@ -89,6 +98,8 @@ function Player:playMoveSound()
 	end
 end
 
+function Player:setDamageSound(audio) self.snd_damage = audio end
+
 function Player:getXDirection() return self.xdir end
 function Player:getYDirection() return self.ydir end
 function Player:setMoveSound(audio)
@@ -98,6 +109,7 @@ end
 
 function Player:damage(damage)
 	self.life = self.life - damage
+	print("Life: " .. self.life)
 	self.vulnerable = false
 	self.color = {1, 0, 0, 1}
 	Shack:setShake(200)
@@ -106,6 +118,12 @@ function Player:damage(damage)
 			self.vulnerable = true
 			self.color = {1, 1, 1, 1}
 		end)
+	self.snd_damage[math.random(1, #self.snd_damage)]:play()
+end
+
+function Player:giveRescued(obj)
+	table.insert(self.rescued, obj)
+	self.score = self.score + love.graphics.getHeight() - obj.pos.y
 end
 
 return Player

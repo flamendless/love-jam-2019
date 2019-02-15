@@ -3,14 +3,17 @@ local Survivor = Base:extend()
 
 local Flux = require("modules.flux.flux")
 
+local pi2 = math.pi * 2
+
 function Survivor:new(sprite, pos, rotation, sx, sy, ox, oy)
 	Survivor.super.new(self, "island", sprite, pos, rotation, sx, sy, ox, oy)
 	self.dir = -1
 	self.dur = math.random(1, 2)
-	self.proximity = 64
+	self.proximity = 128
 	self.rescued = false
 	self.gone = false
 	self.timer = math.random(3, 5)
+	self.orig_timer = self.timer
 	self.speed = 32
 	self.being_rescued = false
 	self:float(self.dir)
@@ -77,15 +80,27 @@ function Survivor:checkHit(other)
 end
 
 function Survivor:draw()
+	--draw progress
+	if self.being_rescued then
+		love.graphics.setColor(0, 1, 0, 1)
+		local angle1 = 0
+		local angle2 = self.timer
+		love.graphics.arc("fill", self.pos.x - self.ox * self.sx + self.width/2 * self.sx,
+			self.pos.y - self.oy * self.sy + self.height/2 * self.sy,
+			64, angle1, angle2)
+		love.graphics.setColor(1, 1, 1, 1)
+	end
+
 	Survivor.super.draw(self)
 	self.obj_anim:draw(self.sheet,
 		(self.pos.x - self.ox * self.sx) + self.width/2 * self.sx,
 		(self.pos.y - self.oy * self.sy) + self.height/2 * self.sy,
-		self.rotation, self.sx, self.sy, 16, 16)
+		0, 1, 1, 16, 16)
 
 	if __DEBUG then
 		love.graphics.setColor(1, 0, 0, 1)
 		love.graphics.circle("line", self.pos.x, self.pos.y, self.proximity)
+		love.graphics.setColor(1, 1, 1, 1)
 	end
 end
 
