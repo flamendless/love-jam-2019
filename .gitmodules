@@ -13,9 +13,6 @@
 [submodule "modules/anim8"]
 	path = modules/anim8
 	url = https://github.com/kikito/anim8
-[submodule "modules/bump"]
-	path = modules/bump
-	url = https://github.com/kikito/bump.lua
 [submodule "modules/splashes"]
 	path = modules/splashes
 	url = https://github.com/love2d-community/splashes

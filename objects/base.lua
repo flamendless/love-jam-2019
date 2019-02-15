@@ -21,4 +21,9 @@ function Base:draw()
 		self.ox, self.oy)
 end
 
+function Base:setDimensions(w, h)
+	self.width = w
+	self.height = h
+end
+
 return Base

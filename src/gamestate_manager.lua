@@ -61,4 +61,6 @@ function GSM:mousereleased(mx, my, mb)
 	self.current_state:mousereleased(mx, my, mb)
 end
 
+function GSM:getID() return self.current_state:getID() end
+
 return GSM

@@ -28,6 +28,14 @@ function Player:gotoIntroPosition(delay, fn)
 		end)
 end
 
+function Player:dodgeToLeft()
+	self.can_move = false
+	Flux.to(self.pos, 1, { x = 64 })
+		:oncomplete(function()
+			self.can_move = true
+		end)
+end
+
 function Player:update(dt)
 	self.input:update()
 	self.xdir = 0

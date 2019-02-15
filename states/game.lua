@@ -32,6 +32,8 @@ local text_control
 local showSlime, showScene, speakCortaxa, getHurt
 local name_commander = "Commander Seven"
 local name_cortaxa = "..."
+local name_slime = "Slime"
+local main_game = false
 
 function Game:new(control)
 	Game.super.new(self, "game")
@@ -47,9 +49,12 @@ function Game:preload()
 			{ id = "player", path = "assets/images/player.png" },
 			{ id = "sheet_slime", path = "assets/images/sheet_slime.png" },
 			{ id = "avatar_cortaxa", path = "assets/images/avatar_cortaxa.png" },
+			{ id = "avatar_slime", path = "assets/images/avatar_slime.png" },
 			{ id = "avatar_commander_serious", path = "assets/images/avatar_commander_serious.png" },
 			{ id = "avatar_commander_speak", path = "assets/images/avatar_commander_speak.png" },
 			{ id = "avatar_commander_shocked", path = "assets/images/avatar_commander_shocked.png" },
+			{ id = "avatar_commander_silly", path = "assets/images/avatar_commander_silly.png" },
+			{ id = "sheet_slime_laser", path = "assets/images/sheet_slime_laser.png" },
 		})
 	AssetsManager:addSource(self:getID(), {
 			{ id = "speak_commander", path = "assets/audio/speak_commander.ogg", kind = "static" },
@@ -82,6 +87,7 @@ function Game:onLoad(previous, ...)
 		Vec2(love.graphics.getWidth()/2, love.graphics.getHeight() * 1.5),
 		0, 1, 1, images.player:getWidth()/2, images.player:getHeight()/2)
 	obj_player:setMoveSound(audio.jet_move)
+	obj_player:setDimensions(images.player:getWidth(), images.player:getHeight())
 	Flux.to(overlay_color, 3, { [4] = 0 }):delay(2)
 		:onstart(function()
 			audio.jet_intro:play()
@@ -139,10 +145,19 @@ function Game:keypressed(key)
 		if pressed_count >= 4 then showScene() end
 	end
 	if key == shoot and count == 2 then
-		Shack:setShake(100)
+		Shack:setShake(200)
 		audio.explosion:play()
 		getHurt()
 		showScene()
+	end
+
+	if key == "t" then
+		showSlime()
+	elseif key == "l" then
+		if obj_slime then
+			obj_slime:attack("laser")
+			obj_player:dodgeToLeft()
+		end
 	end
 end
 
@@ -216,6 +231,34 @@ function showScene()
 					audio.bgm_dark:play()
 				end
 			})
+		Talkies.say(name_slime, {
+				"dasdsa", "dsabnwb", "dadwdhasdhsa",
+			}, {
+				image = images.avatar_slime,
+				talkSound = audio.speak_slime,
+			})
+		Talkies.say(name_commander, {
+				"E-", "Eh?",
+				"That's gibberish",
+				"I think that thing is harmless"
+			}, {
+				image = images.avatar_commander_silly,
+				talkSound = audio.speak_commander,
+				oncomplete = function()
+					obj_slime:attack("laser")
+					obj_player:dodgeToLeft()
+				end
+			})
+		Talkies.say(name_commander, {
+				"What is that!?",
+				"Be careful!"
+			}, {
+				image = images.avatar_commander_shocked,
+				talkSound = audio.speak_commander,
+				oncomplete = function()
+					main_game = true
+				end
+			})
 	end
 end
 
@@ -277,6 +320,8 @@ function showSlime()
 	obj_slime = Slime(obj_anim, images.sheet_slime,
 		Vec2(love.graphics.getWidth()/2, -love.graphics.getHeight()/2),
 		0, 2, 2, 150/2, 0)
+	obj_slime:setPlayer(obj_player)
+	obj_slime:setDimensions(150, 116)
 	audio.slime:play()
 
 	obj_slime:gotoIntroPosition(0, function() showScene() end)
