@@ -5,12 +5,16 @@ end
 
 local Flux = require("modules.flux.flux")
 local Timer = require("modules.hump.timer")
+local Moonshine = require("modules.moonshine")
 
 local GSM = require("src.gamestate_manager")
 local AssetsManager = require("src.assets_manager")
 local States = require("states")
 
+local effect_crt
+
 function love.load()
+	effect_crt = Moonshine(Moonshine.effects.crt)
 	math.randomseed(os.time())
 	if __DEBUG then
 		AssetsManager:init(0.25, 0.25)
@@ -39,8 +43,10 @@ function love.draw()
 	if not AssetsManager:getIsFinished() then
 		AssetsManager:draw()
 	else
-		GSM:draw()
-		AssetsManager:drawTransition()
+		effect_crt(function()
+			GSM:draw()
+			AssetsManager:drawTransition()
+		end)
 	end
 end
 

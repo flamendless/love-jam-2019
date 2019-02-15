@@ -10,6 +10,7 @@ function Base:new(id, sprite, pos, rotation, sx, sy, ox, oy)
 	self.sy = sy or 1
 	self.ox = ox or 0
 	self.oy = oy or 0
+	self:setDimensions(sprite:getWidth(), sprite:getHeight())
 end
 
 function Base:update(dt) end

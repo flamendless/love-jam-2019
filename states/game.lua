@@ -1,6 +1,8 @@
 local BaseState = require("states.base_state")
 local Game = BaseState:extend()
 
+local Lume = require("modules.lume.lume")
+local Moonshine = require("modules.moonshine")
 local Shack = require("modules.shack.shack")
 local Talkies = require("modules.talkies.talkies")
 local Anim8 = require("modules.anim8.anim8")
@@ -13,6 +15,7 @@ local Controls = require("src.controls")
 
 local Player = require("objects.player")
 local Slime = require("objects.slime")
+local Survivor = require("objects.survivor")
 
 local images = {}
 local audio = {}
@@ -35,12 +38,24 @@ local name_cortaxa = "..."
 local name_slime = "Slime"
 local main_game = false
 
+local effect_fog
+local image_fog
+local time = 0
+
+local objects = {}
+
 function Game:new(control)
 	Game.super.new(self, "game")
 	Controls:set(control)
 	local base = "Left : %s\nRight : %s\nUp : %s\nDown : %s"
 	local left, right, up, down = Controls:getMovement()
 	text_control = base:format(left, right, up, down)
+
+	local image_data = love.image.newImageData(love.graphics.getDimensions())
+	image_fog = love.graphics.newImage(image_data)
+	effect_fog = Moonshine(Moonshine.effects.fog)
+	effect_fog.fog.fog_color = { 0.0, 0.0, 0.2, 1 }
+	effect_fog.fog.speed = {0.0, -2}
 end
 
 function Game:preload()
@@ -55,7 +70,15 @@ function Game:preload()
 			{ id = "avatar_commander_shocked", path = "assets/images/avatar_commander_shocked.png" },
 			{ id = "avatar_commander_silly", path = "assets/images/avatar_commander_silly.png" },
 			{ id = "sheet_slime_laser", path = "assets/images/sheet_slime_laser.png" },
+			{ id = "island", path = "assets/images/island.png" },
+			{ id = "wreck", path = "assets/images/wreck.png" },
+			{ id = "drown", path = "assets/images/drown.png" },
+			{ id = "survivor1", path = "assets/images/survivor1.png" },
+			{ id = "survivor2", path = "assets/images/survivor2.png" },
+			{ id = "survivor3", path = "assets/images/survivor3.png" },
+			{ id = "survivor4", path = "assets/images/survivor4.png" },
 		})
+
 	AssetsManager:addSource(self:getID(), {
 			{ id = "speak_commander", path = "assets/audio/speak_commander.ogg", kind = "static" },
 			{ id = "speak_cortaxa", path = "assets/audio/speak_cortaxa.ogg", kind = "static" },
@@ -66,7 +89,16 @@ function Game:preload()
 			{ id = "explosion", path = "assets/audio/explosion.ogg", kind = "stream" },
 			{ id = "bgm_light", path = "assets/audio/bgm_light.ogg", kind = "stream" },
 			{ id = "bgm_dark", path = "assets/audio/bgm_dark.ogg", kind = "stream" },
+			{ id = "yeah1", path = "assets/audio/yeah1.ogg", kind = "stream" },
+			{ id = "yeah2", path = "assets/audio/yeah2.ogg", kind = "stream" },
+			{ id = "yeah3", path = "assets/audio/yeah3.ogg", kind = "stream" },
+			{ id = "yeah4", path = "assets/audio/yeah4.ogg", kind = "stream" },
+			{ id = "yeah5", path = "assets/audio/yeah5.ogg", kind = "stream" },
+			{ id = "help1", path = "assets/audio/help1.ogg", kind = "stream" },
+			{ id = "help2", path = "assets/audio/help2.ogg", kind = "stream" },
+			{ id = "help3", path = "assets/audio/help3.ogg", kind = "stream" },
 		})
+
 	AssetsManager:addFont({
 			{ id = "dialogue", path = "assets/fonts/dimbo_italic.ttf", size = 24 }
 		})
@@ -98,8 +130,13 @@ function Game:onLoad(previous, ...)
 end
 
 function Game:update(dt)
+	local dx = 0
+	local dy = -1
 	bg_x = bg_x - speed * obj_player:getXDirection() * dt
 	bg_y = bg_y - speed * dt
+	if bg_x > love.graphics.getWidth() * 2 then bg_x = 0 end
+	if bg_x < -love.graphics.getWidth() * 2 then bg_x = 0 end
+	if bg_y < -love.graphics.getHeight() * 2 then bg_y = 0 end
 	if obj_player:getYDirection() == -1 then
 		speed = speed + 128 * dt
 		if speed > max_speed then speed = max_speed end
@@ -107,10 +144,35 @@ function Game:update(dt)
 		speed = speed - 128 * dt
 		if speed < min_speed then speed = min_speed end
 	end
+	time = time + dt
+	effect_fog.fog.time = time
+	if obj_player.xdir ~= 0 then
+		dx = obj_player.xdir * 8
+	end
+	if obj_player.ydir ~= 0 then
+		dy = obj_player.ydir * 8
+	end
+	effect_fog.fog.speed = {dx, dy}
+
 	quad:setViewport(bg_x, bg_y, images.bg_game:getWidth() * 2, images.bg_game:getHeight() * 2)
 
 	if obj_slime then obj_slime:update(dt) end
 	obj_player:update(dt)
+
+	for i, v in ipairs(objects) do
+		v:update(dt)
+		if v:checkHit(obj_player) then
+			v.timer = v.timer - dt
+			v.being_rescued = true
+		else
+			v.being_rescued = false
+		end
+	end
+
+	for i = #objects, 1, -1 do
+		local obj = objects[i]
+		if obj.rescued or obj.gone then table.remove(objects, i) end
+	end
 
 	Shack:update(dt)
 	Talkies.update(dt)
@@ -120,6 +182,10 @@ function Game:draw()
 	Shack:apply()
 	love.graphics.setColor(1, 1, 1, 1)
 	love.graphics.draw(images.bg_game, quad)
+	for i, v in ipairs(objects) do v:draw() end
+	effect_fog(function()
+		love.graphics.draw(image_fog)
+	end)
 
 	obj_player:draw()
 	if obj_slime then obj_slime:draw() end
@@ -150,12 +216,15 @@ function Game:keypressed(key)
 		getHurt()
 		showScene()
 	end
-
-	if key == "t" then
-		showSlime()
-	elseif key == "l" then
-		if obj_slime then
-			obj_slime:attack("laser")
+	if __DEBUG then
+		if key == "t" then
+			showSlime()
+		elseif key == "l" then
+			if obj_slime then
+				obj_slime:attack("laser")
+			end
+		elseif key == "p" then
+			spawn()
 		end
 	end
 end
@@ -333,7 +402,34 @@ function getHurt()
 end
 
 function mainGame()
+	spawn()
+end
 
+function spawn()
+	-- local random = math.random(3, 7)
+	local random = math.random(0, 1)
+	print(random)
+	Timer.after(random, function()
+		local chance = Lume.randomchoice({"island", "wreck", "drown"})
+		local sprite = images[chance]
+		local pos = Vec2(
+			math.random(0, love.graphics.getWidth() - sprite:getWidth()),
+			-- math.random(-love.graphics.getHeight() * 1.5, 0))
+			math.random(0, love.graphics.getHeight()))
+		local rotation = math.rad(math.random(0, 360))
+		local obj = Survivor(sprite, pos, rotation, 1, 1, sprite:getWidth()/2, sprite:getHeight()/2)
+		local n = math.random(1, 4)
+		local image_survivor = images["survivor" .. n]
+		local grid = Anim8.newGrid(32, 32, image_survivor:getWidth(), image_survivor:getHeight())
+		local survivor = Anim8.newAnimation(grid('1-2', 1), 0.5)
+		local snd_rescued = audio["yeah" .. math.random(1, 5)]
+		local snd_help = audio["help" .. math.random(1, 3)]
+		obj:setSuvivor(image_survivor, survivor)
+		obj:setSoundOnRescue(snd_rescued)
+		obj:setSoundHelp(snd_help)
+		table.insert(objects, obj)
+		-- spawn()
+	end)
 end
 
 return Game
