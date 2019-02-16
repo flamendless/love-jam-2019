@@ -18,15 +18,24 @@ function BaseAttack:update(dt)
 end
 
 function BaseAttack:draw()
+	if self.color then
+		love.graphics.setColor(self.color)
+	else
+		love.graphics.setColor(1, 1, 1, 1)
+	end
 	self.obj_anim:draw(self.sheet, self.pos.x, self.pos.y, self.rotation, self.sx, self.sy, self.ox, self.oy)
 
+	if self.hit_frame ~= -1 and self.current_frame >= self.hit_frame then
+		self.can_hit = true
+	else
+		self.can_hit = false
+	end
+
 	if __DEBUG then
-		if self.current_frame >= self.hit_frame then
+		if self.can_hit then
 			love.graphics.setColor(1, 0, 0, 1)
-			self.can_hit = true
 		else
 			love.graphics.setColor(0, 0, 1, 1)
-			self.can_hit = false
 		end
 		love.graphics.rectangle("line",
 			self.pos.x - self.ox * self.sx,

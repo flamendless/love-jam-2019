@@ -34,7 +34,7 @@ local count = 0
 local pressed_count = 0
 local text_control
 
-local showSlime, showScene, speakCortaxa, getHurt, mainGame, showFirstRescue
+local showSlime, showScene, speakCortaxa, getHurt, mainGame, showFirstRescue, slimeAttack, slimeMove
 local name_commander = "Commander Seven"
 local name_cortaxa = "..."
 local name_slime = "Slime"
@@ -53,29 +53,18 @@ local time = 0
 
 local objects = {}
 local first_rescue = true
+local start_delay = 3
 
 local function reset()
-	images = {}
-	audio = {}
-	fonts = {}
 	bg_x = 0
 	bg_y = 0
 	quad = nil
-	min_speed = 256
-	max_speed = 1024
-	speed = min_speed
 	overlay_color = {0, 0, 0, 1}
 	obj_player = nil
 	obj_slime = nil
 	count = 0
 	pressed_count = 0
 	text_control = nil
-
-	name_commander = "Commander Seven"
-	name_cortaxa = "..."
-	name_slime = "Slime"
-	names = {"Billy", "Steve", "John", "sam", "Eliot", "Tyrell"}
-	name_rescued = "...."
 
 	main_game = false
 	can_skip = false
@@ -119,6 +108,8 @@ function Game:preload()
 			{ id = "avatar_commander_shocked", path = "assets/images/avatar_commander_shocked.png" },
 			{ id = "avatar_commander_silly", path = "assets/images/avatar_commander_silly.png" },
 			{ id = "sheet_slime_laser", path = "assets/images/sheet_slime_laser.png" },
+			{ id = "sheet_slime_scatter", path = "assets/images/sheet_slime_scatter.png" },
+			{ id = "sheet_slime_bomb", path = "assets/images/sheet_slime_bomb.png" },
 			{ id = "island", path = "assets/images/island.png" },
 			{ id = "wreck", path = "assets/images/wreck.png" },
 			{ id = "drown", path = "assets/images/drown.png" },
@@ -185,11 +176,13 @@ function Game:onLoad(previous, ...)
 	obj_player:setMoveSound(audio.jet_move)
 	obj_player:setDamageSound({audio.hit1, audio.hit2, audio.hit3})
 	obj_player:setDimensions(images.player:getWidth(), images.player:getHeight())
-	Flux.to(overlay_color, 3, { [4] = 0 }):delay(2)
+
+	if __DEBUG then start_delay = 0 end
+	Flux.to(overlay_color, 3, { [4] = 0 }):delay(start_delay)
 		:onstart(function()
 			audio.jet_intro:play()
 		end)
-	obj_player:gotoIntroPosition(3, function()
+	obj_player:gotoIntroPosition(start_delay, function()
 		showScene()
 		can_skip = true
 	end)
@@ -298,8 +291,8 @@ function Game:draw()
 		love.graphics.draw(image_fog)
 	end)
 
-	obj_player:draw()
 	if obj_slime then obj_slime:draw() end
+	obj_player:draw()
 
 	GUI:draw()
 	Talkies.draw()
@@ -344,7 +337,14 @@ function Game:keypressed(key)
 		elseif key == "l" then
 			if obj_slime then
 				-- obj_player:dodgeToLeft()
-				obj_slime:attack("laser")
+				-- obj_slime:attack("laser")
+				-- obj_slime:attack("scatter")
+				-- obj_slime:attack("homing")
+				mainGame()
+			end
+		elseif key == "o" then
+			if obj_slime then
+				slimeMove()
 			end
 		elseif key == "p" then
 			spawn()
@@ -573,13 +573,14 @@ end
 function mainGame()
 	GUI.timer_start = true
 	spawn()
+	slimeAttack()
+	slimeMove()
 end
 
 function spawn()
 	local r1 = math.random(3, 6)
 	local r2 = math.random(3, 5)
 	local random = math.random(r1, r1 + r2)
-	-- local random = math.random(0, 1)
 	print("spawn: " .. random)
 	Timer.after(random, function()
 		local chance = Lume.randomchoice({"island", "wreck", "drown"})
@@ -587,7 +588,6 @@ function spawn()
 		local pos = Vec2(
 			math.random(0, love.graphics.getWidth() - sprite:getWidth()),
 			math.random(-love.graphics.getHeight()/2, 0))
-			-- 64)
 		local scale = math.random(1, 2)
 		local obj = Survivor(sprite, pos, 0, scale, scale, sprite:getWidth()/2, sprite:getHeight()/2)
 		local n = math.random(1, 4)
@@ -601,6 +601,27 @@ function spawn()
 		obj:setSoundHelp(snd_help)
 		table.insert(objects, obj)
 		spawn()
+	end)
+end
+
+function slimeAttack()
+	local random = math.random(1, 5)
+	local choice = Lume.randomchoice({"laser", "scatter", "bomb", "homing"})
+	print("slime attack: " .. choice)
+	Timer.after(random, function()
+		obj_slime:attack(choice)
+	end)
+end
+
+function slimeMove()
+	local random = math.random(1, 3)
+	local choice = Lume.randomchoice({true, false})
+	print("slime move: " .. random .. ", " .. tostring(choice))
+	Timer.after(random, function()
+		if choice then
+			obj_slime:move()
+		end
+		slimeMove()
 	end)
 end
 

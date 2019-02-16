@@ -23,7 +23,7 @@ function SlimeLaser:new(parent)
 	self.rotation = 0
 	self.sx = 1
 	self.sy = 2
-	self.ox = 101/2
+	self.ox = self.width/2
 	self.oy = 0
 end
 

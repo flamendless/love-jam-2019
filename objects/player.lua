@@ -102,8 +102,22 @@ function Player:update(dt)
 		self.sound_move:stop()
 	end
 
+
 	self.pos.x = self.pos.x + self.xspeed * self.xdir * dt
+	if self.pos.x - self.ox * self.sx < 0 then
+		self.pos.x = self.ox * self.sx
+	end
+	if self.pos.x - self.ox * self.sx + self.width * self.sx > love.graphics.getWidth() then
+		self.pos.x = love.graphics.getWidth() - (self.width - self.ox * self.sx)
+	end
+
 	self.pos.y = self.pos.y + self.yspeed * self.ydir * dt
+	if self.pos.y - self.oy * self.sy < 0 then
+		self.pos.y = self.oy * self.sy
+	end
+	if self.pos.y - self.oy * self.sy + self.height * self.sy > love.graphics.getHeight() then
+		self.pos.y = love.graphics.getHeight() - (self.height - self.oy * self.sy)
+	end
 
 	for i, v in ipairs(self.rescued) do
 		v.obj_anim:update(dt)
@@ -147,6 +161,9 @@ function Player:setMoveSound(audio)
 end
 
 function Player:damage(damage)
+	if not self.vulnerable then
+		return
+	end
 	Flux.to(self, 5, { life = self.life - damage })
 	print("Life: " .. self.life - damage)
 	self.vulnerable = false
@@ -225,5 +242,9 @@ end
 function Player:setSlime(slime) self.obj_slime = slime end
 function Player:setAttackSound(t) self.sounds_attack = t end
 function Player:setRepair(t) self.sounds_repair = t end
+
+function Player:bounce()
+	Flux.to(self.pos, 0.5, { y = love.graphics.getHeight() * 0.8 })
+end
 
 return Player
