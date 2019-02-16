@@ -106,6 +106,14 @@ function Game:preload()
 			{ id = "hit1", path = "assets/audio/hit1.ogg", kind = "stream" },
 			{ id = "hit2", path = "assets/audio/hit2.ogg", kind = "stream" },
 			{ id = "hit3", path = "assets/audio/hit3.ogg", kind = "stream" },
+			{ id = "slime_hit1", path = "assets/audio/slime_hit1.ogg", kind = "static" },
+			{ id = "slime_hit2", path = "assets/audio/slime_hit2.ogg", kind = "static" },
+			{ id = "slime_hit3", path = "assets/audio/slime_hit3.ogg", kind = "static" },
+			{ id = "attack1", path = "assets/audio/attack1.ogg", kind = "static" },
+			{ id = "attack2", path = "assets/audio/attack2.ogg", kind = "static" },
+			{ id = "attack3", path = "assets/audio/attack3.ogg", kind = "static" },
+			{ id = "repair1", path = "assets/audio/repair1.ogg", kind = "static" },
+			{ id = "repair2", path = "assets/audio/repair2.ogg", kind = "static" },
 		})
 
 	AssetsManager:addFont({
@@ -137,6 +145,18 @@ function Game:onLoad(previous, ...)
 	obj_player:gotoIntroPosition(3, function()
 		showScene()
 	end)
+
+	local grid = Anim8.newGrid(150, 116, images.sheet_slime:getWidth(), images.sheet_slime:getHeight())
+	local obj_anim = Anim8.newAnimation(grid('1-6', 1), 0.25)
+	obj_slime = Slime(obj_anim, images.sheet_slime,
+		Vec2(love.graphics.getWidth()/2, -love.graphics.getHeight()/2),
+		0, 2, 2, 150/2, 0)
+	obj_slime:setPlayer(obj_player)
+	obj_slime:setDimensions(150, 116)
+	obj_slime:setHitSound({audio.slime_hit1, audio.slime_hit2, audio.slime_hit3})
+	obj_player:setSlime(obj_slime)
+	obj_player:setAttackSound({audio.attack1, audio.attack2, audio.attack3})
+	obj_player:setRepair({audio.repair1, audio.repair2})
 
 	GUI:new(fonts.dialogue)
 	GUI:setObjects(obj_player)
@@ -184,8 +204,6 @@ function Game:update(dt)
 			v.timer = v.timer - dt
 			v.being_rescued = true
 		else
-			v.timer = v.timer - 1
-			if v.timer > v.orig_timer then v.timer = v.orig_timer end
 			v.being_rescued = false
 		end
 	end
@@ -255,11 +273,15 @@ function Game:keypressed(key)
 			showSlime()
 		elseif key == "l" then
 			if obj_slime then
-				obj_player:dodgeToLeft()
+				-- obj_player:dodgeToLeft()
 				obj_slime:attack("laser")
 			end
 		elseif key == "p" then
 			spawn()
+		elseif key == "c" then
+			Talkies.clearMessages()
+			obj_player.can_move = true
+			paused = false
 		end
 	end
 end
@@ -420,13 +442,6 @@ function speakCortaxa()
 end
 
 function showSlime()
-	local grid = Anim8.newGrid(150, 116, images.sheet_slime:getWidth(), images.sheet_slime:getHeight())
-	local obj_anim = Anim8.newAnimation(grid('1-6', 1), 0.25)
-	obj_slime = Slime(obj_anim, images.sheet_slime,
-		Vec2(love.graphics.getWidth()/2, -love.graphics.getHeight()/2),
-		0, 2, 2, 150/2, 0)
-	obj_slime:setPlayer(obj_player)
-	obj_slime:setDimensions(150, 116)
 	audio.slime:play()
 
 	obj_slime:gotoIntroPosition(0, function() showScene() end)
@@ -443,8 +458,10 @@ function mainGame()
 end
 
 function spawn()
-	local random = math.random(3, 7)
-	-- local random = math.random(0, 1)
+	-- local r1 = math.random(3, 6)
+	-- local r2 = math.random(3, 5)
+	-- local random = math.random(r1, r1 + r2)
+	local random = math.random(0, 1)
 	print("spawn: " .. random)
 	Timer.after(random, function()
 		local chance = Lume.randomchoice({"island", "wreck", "drown"})
@@ -454,8 +471,9 @@ function spawn()
 			-- math.random(-love.graphics.getHeight() * 1.5, 0))
 			64)
 		-- local rotation = math.rad(math.random(0, 360))
+		local rotation = 0
 		local scale = math.random(1, 2)
-		local obj = Survivor(sprite, pos, 0, scale, scale, sprite:getWidth()/2, sprite:getHeight()/2)
+		local obj = Survivor(sprite, pos, rotation, scale, scale, sprite:getWidth()/2, sprite:getHeight()/2)
 		local n = math.random(1, 4)
 		local image_survivor = images["survivor" .. n]
 		local grid = Anim8.newGrid(32, 32, image_survivor:getWidth(), image_survivor:getHeight())
@@ -466,7 +484,7 @@ function spawn()
 		obj:setSoundOnRescue(snd_rescued)
 		obj:setSoundHelp(snd_help)
 		table.insert(objects, obj)
-		spawn()
+		-- spawn()
 	end)
 end
 
@@ -488,6 +506,9 @@ function showFirstRescue()
 			"Beep! Beep! Beep!",
 			("New information!\n%s : shoot\n%s : repair"):format(Controls:getShoot(), Controls:getRepair()),
 			"You can see the rescued count on the bottom left part of the screen",
+			"Remember! For every rescued survivor, your fighter's acceleration will decreaase!",
+			"In physics, that is called FRICTION!",
+			"You will regain the lost speed if you shoot them or use them for repair!",
 		}, {
 			image = images.avatar_cortaxa,
 			talkSound = audio.speak_cortaxa,

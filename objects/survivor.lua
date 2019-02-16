@@ -16,6 +16,7 @@ function Survivor:new(sprite, pos, rotation, sx, sy, ox, oy)
 	self.orig_timer = self.timer
 	self.speed = 32
 	self.being_rescued = false
+	self.damage = math.random(100, 500)
 	self:float(self.dir)
 end
 
