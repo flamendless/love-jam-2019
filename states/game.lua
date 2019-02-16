@@ -17,6 +17,7 @@ local GUI = require("src.gui")
 local Player = require("objects.player")
 local Slime = require("objects.slime")
 local Survivor = require("objects.survivor")
+local GAMEOVER
 
 local images = {}
 local audio = {}
@@ -38,10 +39,13 @@ local name_commander = "Commander Seven"
 local name_cortaxa = "..."
 local name_slime = "Slime"
 local names = {"Billy", "Steve", "John", "sam", "Eliot", "Tyrell"}
-local name_rescued = names[math.random(1, #names)]
+local name_rescued = "...."
 
 local main_game = false
+local can_skip = false
 local paused = false
+local skipped = true
+local gameover = false
 
 local effect_fog
 local image_fog
@@ -50,7 +54,46 @@ local time = 0
 local objects = {}
 local first_rescue = true
 
+local function reset()
+	images = {}
+	audio = {}
+	fonts = {}
+	bg_x = 0
+	bg_y = 0
+	quad = nil
+	min_speed = 256
+	max_speed = 1024
+	speed = min_speed
+	overlay_color = {0, 0, 0, 1}
+	obj_player = nil
+	obj_slime = nil
+	count = 0
+	pressed_count = 0
+	text_control = nil
+
+	name_commander = "Commander Seven"
+	name_cortaxa = "..."
+	name_slime = "Slime"
+	names = {"Billy", "Steve", "John", "sam", "Eliot", "Tyrell"}
+	name_rescued = "...."
+
+	main_game = false
+	can_skip = false
+	paused = false
+	skipped = true
+	gameover = false
+
+	effect_fog = nil
+	image_fog = nil
+	time = 0
+
+	objects = {}
+	first_rescue = true
+	print("reset")
+end
+
 function Game:new(control)
+	reset()
 	Game.super.new(self, "game")
 	Controls:set(control)
 	local base = "Left : %s\nRight : %s\nUp : %s\nDown : %s"
@@ -117,7 +160,9 @@ function Game:preload()
 		})
 
 	AssetsManager:addFont({
-			{ id = "dialogue", path = "assets/fonts/dimbo_italic.ttf", size = 24 }
+			{ id = "dialogue", path = "assets/fonts/dimbo_italic.ttf", size = 24 },
+			{ id = "gameover", path = "assets/fonts/whiterabbit.ttf", size = 64 },
+			{ id = "gameover_small", path = "assets/fonts/whiterabbit.ttf", size = 32 }
 		})
 	AssetsManager:start( function() self:onLoad() end )
 end
@@ -127,6 +172,8 @@ function Game:onLoad(previous, ...)
 	images = AssetsManager:getAllImages(self:getID())
 	audio = AssetsManager:getAllSources(self:getID())
 	fonts.dialogue = AssetsManager:getFont("dialogue")
+	fonts.gameover = AssetsManager:getFont("gameover")
+	fonts.gameover_small = AssetsManager:getFont("gameover_small")
 	for k, v in pairs(images) do v:setFilter("nearest", "nearest") end
 	for k, v in pairs(fonts) do v:setFilter("nearest", "nearest") end
 	images.bg_game:setWrap("repeat", "repeat")
@@ -144,6 +191,7 @@ function Game:onLoad(previous, ...)
 		end)
 	obj_player:gotoIntroPosition(3, function()
 		showScene()
+		can_skip = true
 	end)
 
 	local grid = Anim8.newGrid(150, 116, images.sheet_slime:getWidth(), images.sheet_slime:getHeight())
@@ -159,7 +207,10 @@ function Game:onLoad(previous, ...)
 	obj_player:setRepair({audio.repair1, audio.repair2})
 
 	GUI:new(fonts.dialogue)
-	GUI:setObjects(obj_player)
+	GUI:setObjects(obj_player, obj_slime)
+
+	GAMEOVER = require("states").gameover()
+	GAMEOVER:setFont(fonts.gameover, fonts.gameover_small)
 end
 
 function Game:update(dt)
@@ -187,6 +238,8 @@ function Game:update(dt)
 	end
 	effect_fog.fog.speed = {dx, dy}
 
+	GAMEOVER:updateText(obj_player.score, GUI.time)
+
 	quad:setViewport(bg_x, bg_y, images.bg_game:getWidth() * 2, images.bg_game:getHeight() * 2)
 
 	if obj_slime then
@@ -196,6 +249,14 @@ function Game:update(dt)
 	end
 	if not paused then
 		obj_player:update(dt)
+	end
+	if obj_player.isDead and not gameover then
+		gameover = true
+		paused = true
+		Flux.to(overlay_color, 5, { [1] = 1, [4] = 1 })
+			:oncomplete(function()
+				GSM:switch( GAMEOVER )
+			end)
 	end
 
 	for i, v in ipairs(objects) do
@@ -213,7 +274,7 @@ function Game:update(dt)
 		if obj.rescued then
 			obj_player:giveRescued(obj)
 			table.remove(objects, i)
-			if first_rescue then
+			if first_rescue and not skipped then
 				first_rescue = false
 				showFirstRescue()
 			end
@@ -251,6 +312,15 @@ end
 function Game:keypressed(key)
 	local left, right, up, down = Controls:getMovement()
 	local shoot = Controls:getShoot()
+	if key == "escape" and can_skip then
+		GUI.skippable = false
+		main_game = true
+		can_skip = false
+		skipped = true
+		showSlime()
+		mainGame()
+		Talkies.clearMessages()
+	end
 	if key == "space" then Talkies.onAction()
 	elseif key == up then Talkies.prevOption()
 	elseif key == down then Talkies.nextOption()
@@ -282,6 +352,9 @@ function Game:keypressed(key)
 			Talkies.clearMessages()
 			obj_player.can_move = true
 			paused = false
+		elseif key == "g" then
+			-- obj_player:damage(300)
+				GSM:switch( GAMEOVER )
 		end
 	end
 end
@@ -443,8 +516,11 @@ end
 
 function showSlime()
 	audio.slime:play()
-
-	obj_slime:gotoIntroPosition(0, function() showScene() end)
+	obj_slime:gotoIntroPosition(0, function()
+		if not skipped then
+			showScene()
+		end
+	end)
 end
 
 function getHurt()
@@ -458,22 +534,20 @@ function mainGame()
 end
 
 function spawn()
-	-- local r1 = math.random(3, 6)
-	-- local r2 = math.random(3, 5)
-	-- local random = math.random(r1, r1 + r2)
-	local random = math.random(0, 1)
+	local r1 = math.random(3, 6)
+	local r2 = math.random(3, 5)
+	local random = math.random(r1, r1 + r2)
+	-- local random = math.random(0, 1)
 	print("spawn: " .. random)
 	Timer.after(random, function()
 		local chance = Lume.randomchoice({"island", "wreck", "drown"})
 		local sprite = images[chance]
 		local pos = Vec2(
 			math.random(0, love.graphics.getWidth() - sprite:getWidth()),
-			-- math.random(-love.graphics.getHeight() * 1.5, 0))
-			64)
-		-- local rotation = math.rad(math.random(0, 360))
-		local rotation = 0
+			math.random(-love.graphics.getHeight()/2, 0))
+			-- 64)
 		local scale = math.random(1, 2)
-		local obj = Survivor(sprite, pos, rotation, scale, scale, sprite:getWidth()/2, sprite:getHeight()/2)
+		local obj = Survivor(sprite, pos, 0, scale, scale, sprite:getWidth()/2, sprite:getHeight()/2)
 		local n = math.random(1, 4)
 		local image_survivor = images["survivor" .. n]
 		local grid = Anim8.newGrid(32, 32, image_survivor:getWidth(), image_survivor:getHeight())
@@ -484,12 +558,13 @@ function spawn()
 		obj:setSoundOnRescue(snd_rescued)
 		obj:setSoundHelp(snd_help)
 		table.insert(objects, obj)
-		-- spawn()
+		spawn()
 	end)
 end
 
 function showFirstRescue()
 	paused = true
+	name_rescued = names[math.random(1, #names)]
 	Talkies.say(name_rescued, {
 			"Thanks for helping me!",
 			".", "..", "...",
@@ -516,6 +591,15 @@ function showFirstRescue()
 				paused = false
 			end
 		})
+end
+
+function Game:onExit()
+	for k, v in pairs(audio) do
+		v:stop()
+	end
+	Talkies.clearMessages()
+	obj_player.to_intro:stop()
+	obj_slime.to_intro:stop()
 end
 
 return Game

@@ -28,10 +28,11 @@ function Player:new(sprite, pos, rotation, sx, sy, ox, oy)
 	self.rescued = {}
 	self.projectiles = {}
 	self.score = 0
+	self.isDead = false
 end
 
 function Player:gotoIntroPosition(delay, fn)
-	Flux.to(self.pos, 2, { y = love.graphics.getHeight() * 0.75 }):ease("backout"):delay(delay or 0)
+	self.to_intro = Flux.to(self.pos, 2, { y = love.graphics.getHeight() * 0.75 }):ease("backout"):delay(delay or 0)
 		:oncomplete(function()
 			if __DEBUG then
 				self.can_move = true
@@ -50,6 +51,10 @@ function Player:dodgeToLeft()
 end
 
 function Player:update(dt)
+	if self.life <= 0 then self.isDead = true end
+	if self.isDead then
+		return
+	end
 	self.input:update()
 	self.xdir = 0
 	self.ydir = 0
