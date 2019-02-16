@@ -12,7 +12,7 @@ function Survivor:new(sprite, pos, rotation, sx, sy, ox, oy)
 	self.proximity = 128
 	self.rescued = false
 	self.gone = false
-	self.timer = math.random(3, 5)
+	self.timer = math.random(2, 3)
 	self.orig_timer = self.timer
 	self.speed = 32
 	self.being_rescued = false

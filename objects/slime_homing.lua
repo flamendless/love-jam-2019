@@ -11,7 +11,7 @@ local map = function(n, start1, stop1, start2, stop2)
 end
 
 function SlimeHoming:new(parent, target)
-	local sheet = AssetsManager:getImage(GSM:getID(), "sheet_slime_scatter")
+	local sheet = AssetsManager:getImage("game", "sheet_slime_scatter")
 	local grid = Anim8.newGrid(32, 32, sheet:getWidth(), sheet:getHeight())
 	local obj_anim = Anim8.newAnimation(grid('1-4', 1), 0.1)
 	SlimeHoming.super.new(self, "homing", obj_anim, sheet)
@@ -22,8 +22,8 @@ function SlimeHoming:new(parent, target)
 	self.hit_frame = 0
 	self.pos = Vec2((parent.pos.x - parent.ox * parent.sx) + parent.width/2 * parent.sx - self.width/2, (parent.pos.y - parent.oy * parent.sy) + parent.height * parent.sy - self.height/2)
 	self.rotation = 0
-	self.sx = 1
-	self.sy = 1
+	self.sx = 0.5
+	self.sy = 0.5
 	self.ox = self.width/2
 	self.oy = self.height/2
 	self.max_speed = 6

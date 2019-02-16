@@ -7,7 +7,7 @@ local Anim8 = require("modules.anim8.anim8")
 local Vec2 = require("modules.hump.vector")
 
 function SlimeScatter:new(parent, xdir, ydir, xspeed, yspeed)
-	local sheet = AssetsManager:getImage(GSM:getID(), "sheet_slime_scatter")
+	local sheet = AssetsManager:getImage("game", "sheet_slime_scatter")
 	local grid = Anim8.newGrid(32, 32, sheet:getWidth(), sheet:getHeight())
 	local obj_anim = Anim8.newAnimation(grid('1-4', 1), 0.1)
 	SlimeScatter.super.new(self, "scatter", obj_anim, sheet)
@@ -19,8 +19,8 @@ function SlimeScatter:new(parent, xdir, ydir, xspeed, yspeed)
 		(parent.pos.x - parent.ox * parent.sx) + parent.width/2 * parent.sx - self.width/2,
 		(parent.pos.y - parent.oy * parent.sy) + parent.height * parent.sy - self.height/2)
 	self.rotation = 0
-	self.sx = 1
-	self.sy = 1
+	self.sx = 0.5
+	self.sy = 0.5
 	self.ox = self.width/2
 	self.oy = 0
 	self.xspeed = xspeed

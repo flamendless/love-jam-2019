@@ -15,7 +15,11 @@ end
 
 function Gameover:updateText(score, time)
 	text_score = ("SCORE: %i"):format(score or 0)
-	text_time = ("TIME: %i seconds"):format(time or 0)
+	if math.floor(time) == 1 then
+		text_time = ("TIME: %i second"):format(time or 0)
+	else
+		text_time = ("TIME: %i seconds"):format(time or 0)
+	end
 end
 
 function Gameover:setFont(font_big, font_small)

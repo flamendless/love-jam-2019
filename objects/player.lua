@@ -216,7 +216,7 @@ function Player:shootRescued()
 			y = self.obj_slime.pos.y - self.obj_slime.oy * self.obj_slime.sy + self.obj_slime.height/2 * self.obj_slime.sy
 		})
 		:oncomplete(function()
-			self.obj_slime:damage(obj.damage)
+			self.obj_slime:doDamage(obj.damage)
 			self:increaseScore(obj.damage)
 			_obj.remove = true
 		end)

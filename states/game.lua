@@ -34,17 +34,18 @@ local count = 0
 local pressed_count = 0
 local text_control
 
-local showSlime, showScene, speakCortaxa, getHurt, mainGame, showFirstRescue, slimeAttack, slimeMove
+local showSlime, showScene, speakCortaxa, getHurt, mainGame, showFirstRescue, slimeAttack, slimeMove, determineIfCanSkip
 local name_commander = "Commander Seven"
 local name_cortaxa = "..."
 local name_slime = "Slime"
-local names = {"Billy", "Steve", "John", "sam", "Eliot", "Tyrell"}
+local names = {"Billy", "Steve", "John", "Sam", "Eliot", "Tyrell"}
 local name_rescued = "...."
 
 local main_game = false
 local can_skip = false
 local paused = false
-local skipped = true
+local event = false
+local skipped = false
 local gameover = false
 
 local effect_fog
@@ -60,8 +61,6 @@ local function reset()
 	bg_y = 0
 	quad = nil
 	overlay_color = {0, 0, 0, 1}
-	obj_player = nil
-	obj_slime = nil
 	count = 0
 	pressed_count = 0
 	text_control = nil
@@ -69,7 +68,7 @@ local function reset()
 	main_game = false
 	can_skip = false
 	paused = false
-	skipped = true
+	skipped = false
 	gameover = false
 
 	effect_fog = nil
@@ -89,6 +88,7 @@ function Game:new(control)
 	local left, right, up, down = Controls:getMovement()
 	text_control = base:format(left, right, up, down)
 
+	self.rot = 0
 	local image_data = love.image.newImageData(love.graphics.getDimensions())
 	image_fog = love.graphics.newImage(image_data)
 	effect_fog = Moonshine(Moonshine.effects.fog)
@@ -153,7 +153,9 @@ function Game:preload()
 	AssetsManager:addFont({
 			{ id = "dialogue", path = "assets/fonts/dimbo_italic.ttf", size = 24 },
 			{ id = "gameover", path = "assets/fonts/whiterabbit.ttf", size = 64 },
-			{ id = "gameover_small", path = "assets/fonts/whiterabbit.ttf", size = 32 }
+			{ id = "gameover_small", path = "assets/fonts/whiterabbit.ttf", size = 32 },
+			{ id = "big", path = "assets/fonts/whiterabbit.ttf", size = 72 },
+			{ id = "medium", path = "assets/fonts/whiterabbit.ttf", size = 32 },
 		})
 	AssetsManager:start( function() self:onLoad() end )
 end
@@ -165,6 +167,8 @@ function Game:onLoad(previous, ...)
 	fonts.dialogue = AssetsManager:getFont("dialogue")
 	fonts.gameover = AssetsManager:getFont("gameover")
 	fonts.gameover_small = AssetsManager:getFont("gameover_small")
+	fonts.big = AssetsManager:getFont("big")
+	fonts.medium = AssetsManager:getFont("medium")
 	for k, v in pairs(images) do v:setFilter("nearest", "nearest") end
 	for k, v in pairs(fonts) do v:setFilter("nearest", "nearest") end
 	images.bg_game:setWrap("repeat", "repeat")
@@ -184,7 +188,7 @@ function Game:onLoad(previous, ...)
 		end)
 	obj_player:gotoIntroPosition(start_delay, function()
 		showScene()
-		can_skip = true
+		determineIfCanSkip()
 	end)
 
 	local grid = Anim8.newGrid(150, 116, images.sheet_slime:getWidth(), images.sheet_slime:getHeight())
@@ -199,7 +203,7 @@ function Game:onLoad(previous, ...)
 	obj_player:setAttackSound({audio.attack1, audio.attack2, audio.attack3})
 	obj_player:setRepair({audio.repair1, audio.repair2})
 
-	GUI:new(fonts.dialogue)
+	GUI:new(fonts.dialogue, fonts.big, fonts.medium)
 	GUI:setObjects(obj_player, obj_slime)
 
 	GAMEOVER = require("states").gameover()
@@ -207,6 +211,8 @@ function Game:onLoad(previous, ...)
 end
 
 function Game:update(dt)
+	self.rot = self.rot + 16 * dt
+	if self.rot > 360 then self.rot = 0 end
 	local dx = 0
 	local dy = -1
 	bg_x = bg_x - speed * obj_player:getXDirection() * dt
@@ -230,56 +236,53 @@ function Game:update(dt)
 		dy = obj_player.ydir * 8
 	end
 	effect_fog.fog.speed = {dx, dy}
-
 	GAMEOVER:updateText(obj_player.score, GUI.time)
 
 	quad:setViewport(bg_x, bg_y, images.bg_game:getWidth() * 2, images.bg_game:getHeight() * 2)
 
 	if obj_slime then
-		if not paused then
+		if (not paused) and not event then
 			obj_slime:update(dt)
 		end
 	end
-	if not paused then
+	if (not paused) and not event then
 		obj_player:update(dt)
 	end
 	if obj_player.isDead and not gameover then
 		gameover = true
-		paused = true
 		Flux.to(overlay_color, 5, { [1] = 1, [4] = 1 })
 			:oncomplete(function()
 				GSM:switch( GAMEOVER )
 			end)
 	end
 
-	for i, v in ipairs(objects) do
-		v:update(dt)
-		if v:checkHit(obj_player) then
-			v.timer = v.timer - dt
-			v.being_rescued = true
-		else
-			v.being_rescued = false
-		end
-	end
-
-	for i = #objects, 1, -1 do
-		local obj = objects[i]
-		if obj.rescued then
-			obj_player:giveRescued(obj)
-			table.remove(objects, i)
-			if first_rescue and not skipped then
-				first_rescue = false
-				showFirstRescue()
+	if (not paused) and not event then
+		for i, v in ipairs(objects) do
+			v:update(dt)
+			if v:checkHit(obj_player) then
+				v.timer = v.timer - dt
+				v.being_rescued = true
+			else
+				v.being_rescued = false
 			end
 		end
-		if obj.gone then table.remove(objects, i) end
-	end
 
-	if	not paused then
+		for i = #objects, 1, -1 do
+			local obj = objects[i]
+			if obj.rescued then
+				obj_player:giveRescued(obj)
+				table.remove(objects, i)
+				if first_rescue and not skipped then
+					first_rescue = false
+					showFirstRescue()
+				end
+			end
+			if obj.gone then table.remove(objects, i) end
+		end
 		GUI:update(dt)
+		Talkies.update(dt)
+		Shack:update(dt)
 	end
-	Shack:update(dt)
-	Talkies.update(dt)
 end
 
 function Game:draw()
@@ -300,6 +303,16 @@ function Game:draw()
 	--overlay
 	love.graphics.setColor(overlay_color)
 	love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
+
+	if paused then
+		love.graphics.setColor(0.5, 0.5, 0.5, 1)
+		love.graphics.rectangle("fill", 0, 0, love.graphics.getWidth(), love.graphics.getHeight())
+		love.graphics.setColor(1, 1, 1, 1)
+		love.graphics.draw(images.player, love.graphics.getWidth()/2, love.graphics.getHeight()/2, math.rad(self.rot), 4, 4, images.player:getWidth()/2, images.player:getHeight()/2)
+		GUI:drawPaused()
+		GUI:draw()
+		love.graphics.setColor(1, 1, 1, 1)
+	end
 end
 
 function Game:keypressed(key)
@@ -327,10 +340,14 @@ function Game:keypressed(key)
 	if key == shoot and count == 2 then
 		Shack:setShake(200)
 		audio.explosion:play()
-		obj_player.life = obj_player.life - 25
+		obj_player:damage(10)
 		getHurt()
 		showScene()
 	end
+	if key == "m" then
+		paused = not paused
+	end
+
 	if __DEBUG then
 		if key == "t" then
 			showSlime()
@@ -354,7 +371,8 @@ function Game:keypressed(key)
 			paused = false
 		elseif key == "g" then
 			-- obj_player:damage(300)
-				GSM:switch( GAMEOVER )
+			gameover = true
+			GSM:switch( GAMEOVER )
 		end
 	end
 end
@@ -372,6 +390,9 @@ function showScene()
 				onstart = function()
 					audio.bgm_light:setLooping(true)
 					audio.bgm_light:play()
+				end,
+				oncomplete = function()
+					obj_player.can_move = true
 				end
 			})
 		Talkies.say(name_cortaxa, {
@@ -571,16 +592,17 @@ function getHurt()
 end
 
 function mainGame()
+	love.filesystem.write("run", "mjdj")
+	GUI.skippable = false
 	GUI.timer_start = true
+	obj_player.can_move = true
 	spawn()
 	slimeAttack()
 	slimeMove()
 end
 
 function spawn()
-	local r1 = math.random(3, 6)
-	local r2 = math.random(3, 5)
-	local random = math.random(r1, r1 + r2)
+	local random = math.random(2, 6)
 	print("spawn: " .. random)
 	Timer.after(random, function()
 		local chance = Lume.randomchoice({"island", "wreck", "drown"})
@@ -588,7 +610,7 @@ function spawn()
 		local pos = Vec2(
 			math.random(0, love.graphics.getWidth() - sprite:getWidth()),
 			math.random(-love.graphics.getHeight()/2, 0))
-		local scale = math.random(1, 2)
+		local scale = math.random(1, 1.5)
 		local obj = Survivor(sprite, pos, 0, scale, scale, sprite:getWidth()/2, sprite:getHeight()/2)
 		local n = math.random(1, 4)
 		local image_survivor = images["survivor" .. n]
@@ -605,28 +627,28 @@ function spawn()
 end
 
 function slimeAttack()
-	local random = math.random(1, 5)
+	local bool = Lume.randomchoice({true, false})
+	if not bool then slimeAttack() return end
+	local random = math.random(3, 8)
 	local choice = Lume.randomchoice({"laser", "scatter", "bomb", "homing"})
 	print("slime attack: " .. choice)
 	Timer.after(random, function()
 		obj_slime:attack(choice)
+		slimeAttack()
 	end)
 end
 
 function slimeMove()
-	local random = math.random(1, 3)
-	local choice = Lume.randomchoice({true, false})
-	print("slime move: " .. random .. ", " .. tostring(choice))
+	local random = math.random(2, 5)
+	print("slime move: " .. random)
 	Timer.after(random, function()
-		if choice then
-			obj_slime:move()
-		end
+		obj_slime:move()
 		slimeMove()
 	end)
 end
 
 function showFirstRescue()
-	paused = true
+	event = true
 	name_rescued = names[math.random(1, #names)]
 	Talkies.say(name_rescued, {
 			"Thanks for helping me!",
@@ -651,7 +673,8 @@ function showFirstRescue()
 			image = images.avatar_cortaxa,
 			talkSound = audio.speak_cortaxa,
 			oncomplete = function()
-				paused = false
+				event = false
+				mainGame()
 			end
 		})
 end
@@ -660,9 +683,19 @@ function Game:onExit()
 	for k, v in pairs(audio) do
 		v:stop()
 	end
+	Timer.clear()
 	Talkies.clearMessages()
+	gameover = true
 	obj_player.to_intro:stop()
 	obj_slime.to_intro:stop()
+end
+
+function determineIfCanSkip()
+	if love.filesystem.getInfo("run") then
+		can_skip = true
+		GUI.skippable = true
+	end
+	print("can skip: " .. tostring(can_skip))
 end
 
 return Game

@@ -14,8 +14,8 @@ function Controls:set(n)
 		self.right = "d"
 		self.up = "w"
 		self.down = "s"
-		self.shoot = "n"
-		self.repair = "m"
+		self.shoot = "k"
+		self.repair = "l"
 	elseif self.control == 2 then
 		self.left = "left"
 		self.right = "right"

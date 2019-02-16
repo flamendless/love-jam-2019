@@ -1,4 +1,4 @@
-__DEBUG = true
+__DEBUG = false
 if __DEBUG then
 	io.stdout:setvbuf("no")
 end

@@ -177,7 +177,7 @@ function Slime:draw()
 end
 
 function Slime:setHitSound(t) self.sounds_hit = t end
-function Slime:damage(damage)
+function Slime:doDamage(damage)
 	local r = math.random(1, 3)
 	Flux.to(self, 5, { life = self.life - damage * r })
 	print("Slime hp: " .. self.life - damage * r)
