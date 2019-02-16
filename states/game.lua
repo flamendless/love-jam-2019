@@ -493,6 +493,48 @@ function speakCortaxa()
 								end
 							})
 					end},
+				{"Who is Commander Seven?", function()
+						Talkies.say(name_cortaxa, {
+								".", "..", "...",
+								"I am not supposed to give my opinion...",
+								"BUT, I think he is the man behind this problem...",
+								"I know he is up to something not good..."
+							}, {
+								image = images.avatar_cortaxa,
+								talkSound = audio.speak_cortaxa,
+								oncomplete = function()
+									speakCortaxa()
+								end
+							})
+					end},
+				{"Who am I?", function()
+						Talkies.say(name_cortaxa, {
+								".", "..", "...",
+								"You don't know your name?!",
+								"Silly!"
+							}, {
+								image = images.avatar_cortaxa,
+								talkSound = audio.speak_cortaxa,
+								oncomplete = function()
+									speakCortaxa()
+								end
+							})
+					end},
+				{"Tell me about this fighter", function()
+						Talkies.say(name_cortaxa, {
+								".", "..", "...",
+								"Model - MJDJ",
+								"This fighter is aptly named after the creator's love one...",
+								"Mr. Brandon Blanker Lim-it.",
+								".", "..", "...",
+							}, {
+								image = images.avatar_cortaxa,
+								talkSound = audio.speak_cortaxa,
+								oncomplete = function()
+									speakCortaxa()
+								end
+							})
+					end},
 				{"Nothing!", function()
 						Talkies.say(name_cortaxa, {
 								"Bye!"
